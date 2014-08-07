@@ -24,7 +24,13 @@
 #define GUARD_1		0xCB0A0D0D
 #define GUARD_2 	0xCB05160E
 
-
+/*
+ * NOTE: Remind myself to rewrite this, the current implemenation 
+ * uses a linked list which works; however finding a free block
+ * is quite slow. If I use two seperate stacks (One for free blocks,
+ * one for allocated blocks) speed should be that of O(1) (I think)
+ */
+ 
 mblock_t* mlist;			// Heap linked list
 
 void* freeaddress;			// The next free address
