@@ -15,12 +15,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+/*
+ * paging.c
+ * The low level paging code, this really should never
+ * be used. memmanager.h provides more abstraction, this
+ * is basically the raw code for writing to page directories
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <infinity/kheap.h>
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
+#include "page_fault.h"
 
 #define IDENTITY_MAP_END		0x1E84800 
 
@@ -93,6 +101,8 @@ page_directory_t* create_new_page_directory()
 void init_paging()
 {
 
+	request_isr(14, page_fault_handler);
+	
 	kernel_directory = (page_directory_t*)malloc_pa(sizeof(page_directory_t));
 	memset(kernel_directory, 0, sizeof(page_directory_t));
 

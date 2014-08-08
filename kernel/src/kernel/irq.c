@@ -15,6 +15,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+/*
+ * irq.c
+ * Provides a simple interface for kernel level drivers
+ * to request IRQ handlers
+ */
+ 
 #include <stdint.h>
 #include <stddef.h>
 #include <infinity/interrupt.h>

@@ -15,28 +15,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <stdint.h>
-#include <mboot.h>
-#include <infinity/idt.h>
-#include <infinity/gdt.h>
-#include <infinity/interrupt.h>
-#include <infinity/device.h>
-#include <infinity/kheap.h>
+#ifndef PROCESS_H
+#define PROCESS_H
+
+
+#include <infinity/types.h>
 #include <infinity/paging.h>
-#include <infinity/textscreen.h>
+#include <infinity/interrupt.h>
 
-extern device_t textscreen_device;
+typedef struct process_image_t process_image_t;
+typedef struct process_t process_t;
 
-void kmain(multiboot_info_t* mbootinfo)
+
+
+struct process_image_t
 {
-	init_textscreen();
-	init_gdt();
-	init_idt();
-	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
-	init_paging();
-	init_sched();
-	char* test1 = (char*)0xCB00BABE;
-	test1[0] = 3;
-	while(1);
-}
+	void* sig_handlers[256];
+	page_directory_t* page_directory;
+	uid_t uid;
+	gid_t gid;
+	uint32_t kernel_stack;
+	uint32_t stack_base;
+	uint32_t image_base;
+	uint32_t image_brk;
+	uint32_t paged;
+	process_image_t* next_image;
+	registers_t previous_state;
+};
 
+struct process_t
+{
+	pid_t pid;
+	pid_t parent_pid;
+	process_image_t image;
+	registers_t register_context;
+	process_t* next_proc;
+
+};
+#endif

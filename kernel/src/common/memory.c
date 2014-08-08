@@ -15,7 +15,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
+/*
+ * memory.c
+ * Provides a simple implemenation of common C
+ * memory functions
+ */
+ 
 #include <stddef.h>
 #include <stdint.h>
 #include <infinity/common.h>

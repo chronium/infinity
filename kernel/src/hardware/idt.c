@@ -21,6 +21,11 @@
 #include <infinity/interrupt.h>
 #include <infinity/common.h>
 
+/*
+ * idt.c
+ * Low level code to load the kernel idt
+ */
+ 
 static idtentry_t idt[256];
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);

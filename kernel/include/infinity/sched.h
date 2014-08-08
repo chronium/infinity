@@ -15,28 +15,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <stdint.h>
-#include <mboot.h>
-#include <infinity/idt.h>
-#include <infinity/gdt.h>
+#ifndef SCHED_H
+#define SCHED_H
+
+#include <infinity/process.h>
 #include <infinity/interrupt.h>
-#include <infinity/device.h>
-#include <infinity/kheap.h>
-#include <infinity/paging.h>
-#include <infinity/textscreen.h>
 
-extern device_t textscreen_device;
+void init_sched();
+void perform_context_switch(registers_t* context);
+void schedule_process(process_t* proc);
+void scheduler_enable();
+void scheduler_disable();
 
-void kmain(multiboot_info_t* mbootinfo)
-{
-	init_textscreen();
-	init_gdt();
-	init_idt();
-	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
-	init_paging();
-	init_sched();
-	char* test1 = (char*)0xCB00BABE;
-	test1[0] = 3;
-	while(1);
-}
-
+#endif

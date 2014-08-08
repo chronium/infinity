@@ -23,14 +23,14 @@
 typedef struct kernelmsg_t kernelmsg_t;
 
 struct kernelmsg_t {
-	char* msg_string;
+	char msg_string[512];
 	kernelmsg_t* last_msg;
 };
 
-extern void kernel_log(int log);
-extern void set_kernel_output(device_t* dev);
+extern void klog(int log);
+extern void klog_output(device_t* dev);
 extern void printk(const char* format, ...);
-extern void panic(char* msg);
+extern void panic(const char* format, ...);
 extern void shutdown();
 
 #endif

@@ -15,28 +15,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+
+#ifndef PAGE_FAULT_H
+#define PAGE_FAULT_H
+
 #include <stdint.h>
-#include <mboot.h>
-#include <infinity/idt.h>
-#include <infinity/gdt.h>
 #include <infinity/interrupt.h>
-#include <infinity/device.h>
-#include <infinity/kheap.h>
-#include <infinity/paging.h>
-#include <infinity/textscreen.h>
 
-extern device_t textscreen_device;
+extern void page_fault_handler(registers_t* regs);
 
-void kmain(multiboot_info_t* mbootinfo)
-{
-	init_textscreen();
-	init_gdt();
-	init_idt();
-	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
-	init_paging();
-	init_sched();
-	char* test1 = (char*)0xCB00BABE;
-	test1[0] = 3;
-	while(1);
-}
-
+#endif

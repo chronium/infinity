@@ -15,6 +15,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+/*
+ * device.c
+ * Provides an abstraction layer for char/block devices
+ */
+ 
 #include <stddef.h>
 #include <infinity/kheap.h>
 #include <infinity/device.h>

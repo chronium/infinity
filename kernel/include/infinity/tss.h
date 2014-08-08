@@ -32,6 +32,6 @@ typedef struct
    uint32_t ldt;
    uint16_t trap;
    uint16_t iomap_base;
-} __attribute__((packed)) tssentry_t;
+} tssentry_t;
 
 #endif

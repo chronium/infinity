@@ -15,7 +15,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
+/*
+ * portio.c
+ * Provides several routines for dealing with low
+ * level port IO
+ */
+ 
 #include <stdint.h>
 #include <infinity/portio.h>
 

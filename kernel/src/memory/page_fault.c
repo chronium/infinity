@@ -15,28 +15,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+/*
+ * page_fault.c
+ * Handles page faults, this actually does alot more than
+ * that (Demand paging, ect)
+ */
+
 #include <stdint.h>
-#include <mboot.h>
-#include <infinity/idt.h>
-#include <infinity/gdt.h>
-#include <infinity/interrupt.h>
-#include <infinity/device.h>
-#include <infinity/kheap.h>
-#include <infinity/paging.h>
-#include <infinity/textscreen.h>
+#include <stddef.h>
+#include <infinity/interrupt.h> 
+#include <infinity/types.h>
+#include <infinity/kernel.h>
 
-extern device_t textscreen_device;
-
-void kmain(multiboot_info_t* mbootinfo)
+void page_fault_handler(registers_t* regs)
 {
-	init_textscreen();
-	init_gdt();
-	init_idt();
-	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
-	init_paging();
-	init_sched();
-	char* test1 = (char*)0xCB00BABE;
-	test1[0] = 3;
-	while(1);
+	caddr_t fault;
+	asm volatile("mov %%cr2, %0" : "=r" (fault)); 
+	panic("page fault at 0x%p", fault);
 }
-

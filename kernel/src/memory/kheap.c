@@ -25,6 +25,8 @@
 #define GUARD_2 	0xCB05160E
 
 /*
+ * kheap.c 
+ * The kernel heap
  * NOTE: Remind myself to rewrite this, the current implemenation 
  * uses a linked list which works; however finding a free block
  * is quite slow. If I use two seperate stacks (One for free blocks,
@@ -149,7 +151,7 @@ void kfree(void* ptr)
 		if(ptr >= fb->memory && ptr < fb->memory + fb->size && fb->state == MBLOCK_ALLOCATED)
 		{
 			if(*((int*)(fb->memory - 4)) != GUARD_1 || *((int*)(fb->memory + fb->size)) != GUARD_2)
-				return; //panic("kernel heap corruption!");
+				panic("kernel heap corruption!");
 			fb->state = MBLOCK_FREE;
 			return;
 		}

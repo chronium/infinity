@@ -15,14 +15,65 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+
+/*
+ * printk.c
+ * Used to output messages from kernel land, note we
+ * don't always print to the screen. Basically this
+ * will usually just log the message, but we can also
+ * specify a device to output to (The console, a serial
+ * port, ect)
+ */
+ 
 #include <stdint.h>
 #include <stddef.h>
 #include <infinity/device.h>
+#include <infinity/common.h>
+#include <infinity/textscreen.h>
 #include <infinity/kernel.h>
 
+
+extern device_t textscreen_device;
+
 static kernelmsg_t* kmsg_stack = NULL;
+static device_t* printk_output = &textscreen_device;
 static int should_log_messages = 1;
-static device_t* printk_output;
 
 static void kernel_log_msg(kernelmsg_t* msg);
 
+void printk(const char* format, ...)
+{
+	va_list argp;
+	va_start(argp, format);	
+	char tmp_buff[512];
+	memset(tmp_buff, 0, 512);
+	vsprintf(tmp_buff, format, argp);
+	va_end(argp);
+	if(should_log_messages)
+	{
+		kernelmsg_t* msg = (kernelmsg_t*)kalloc(sizeof(kernelmsg_t));
+		memcpy(msg->msg_string, tmp_buff, 512);
+		kernel_log_msg(msg);
+	}
+	if(printk_output)
+		printk_output->write(tmp_buff, strlen(tmp_buff), 0);
+}
+
+/*
+ * Turns kernel logging on or off
+ */
+void klog(int log)
+{
+	should_log_messages = log;
+}
+
+void klog_output(device_t* dev)
+{
+	printk_output = dev;
+}
+
+static void kernel_log_msg(kernelmsg_t* msg)
+{
+	msg->last_msg = kmsg_stack;
+	kmsg_stack = msg;
+}
