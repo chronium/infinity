@@ -15,44 +15,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef PROCESS_H
-#define PROCESS_H
+/*
+ * sched.c
+ * The scheduler, handles multitasking and process
+ * creation
+ */
 
-
-#include <infinity/types.h>
-#include <infinity/paging.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <infinity/common.h>
 #include <infinity/interrupt.h>
+#include <infinity/types.h>
+#include <infinity/kheap.h>
+#include <infinity/paging.h>
+#include <infinity/process.h>
+#include <infinity/kernel.h>
 
-typedef struct process_image_t process_image_t;
-typedef struct process_t process_t;
+static void pit_irq(registers_t* state);
 
 
-
-struct process_image_t
+void init_pit(uint32_t freq)
 {
-	void* sig_handlers[256];
-	page_directory_t* page_directory;
-	uid_t uid;
-	gid_t gid;
-	uint32_t kernel_stack;
-	uint32_t stack_base;
-	uint32_t image_base;
-	uint32_t image_brk;
-	uint32_t paged;
-	process_image_t* next_image;
-	registers_t previous_state;
-};
+	request_irq(0, pit_irq);
+	uint32_t divisor = 1193180 / freq;
+	outb(0x43, 0x36);
+	outb(0x40, divisor & 0xFF);
+	outb(0x40, (divisor >> 8) & 0xFF );
+}
 
-struct process_t
+static void pit_irq(registers_t* state)
 {
-	pid_t pid;
-	pid_t parent_pid;
-	process_image_t image;
-	registers_t register_context;
-	process_t* next_proc;
-
-};
-
-
-extern pid_t fork();
-#endif
+	perform_context_switch(state);
+}

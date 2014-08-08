@@ -67,7 +67,7 @@ void page_remap(page_directory_t* dir, uint32_t vaddr, uint32_t paddr)
 	uint32_t i = vaddr / 1024;
 	void* old_t = dir->tables[i];
 	dir->tables[i] = (page_directory_t*)malloc_pa(sizeof(page_table_t));
-	memcpy(old_t, dir->tables[i], sizeof(page_table_t));
+	memcpy(dir->tables[i], old_t, sizeof(page_table_t));
 	dir->tables_physical[i] = (uint32_t)dir->tables[i] | 0x7; 
 	page_t* p = &dir->tables[i]->pages[vaddr % 1024];
 	p->frame = paddr >> 12;

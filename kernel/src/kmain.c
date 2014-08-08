@@ -35,8 +35,15 @@ void kmain(multiboot_info_t* mbootinfo)
 	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
 	init_paging();
 	init_sched();
-	char* test1 = (char*)0xCB00BABE;
-	test1[0] = 3;
+	int test = fork();
+	if(test)
+	{
+		printk("I'm the child");
+	}
+	else
+	{
+		printk("I'm the parent thread");
+	}
 	while(1);
 }
 

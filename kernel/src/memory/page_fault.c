@@ -25,11 +25,31 @@
 #include <stddef.h>
 #include <infinity/interrupt.h> 
 #include <infinity/types.h>
+#include <infinity/process.h>
+#include <infinity/sched.h>
 #include <infinity/kernel.h>
+
+
+extern process_t* current_process;
 
 void page_fault_handler(registers_t* regs)
 {
 	caddr_t fault;
 	asm volatile("mov %%cr2, %0" : "=r" (fault)); 
+	
+	if(current_process)
+	{
+		/*
+		 * Relax! No need to fear, this address belongs to the process
+		 * but it just hasn't been paged so we need to allocate the page
+		 * and return
+		 */
+		if(fault < current_process->image.image_brk && fault >= current_process->image.image_base)
+		{
+			frame_alloc(fault & 0xFFFFF000, 2);
+			return;
+		}
+	}
+
 	panic("page fault at 0x%p", fault);
 }

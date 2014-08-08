@@ -31,32 +31,38 @@
 #include <infinity/paging.h>
 #include <infinity/process.h>
 #include <infinity/kernel.h>
+#include "pit.h"
 
 extern page_directory_t* current_directory;
 
-process_t* current_process;
+process_t* current_process = NULL;
 
 static process_t* proc_queue;
 
-static pid_t next_pid;
-static char scheduler_enabled;
+static char scheduler_enabled = 1;
 
 void init_sched()
 {
 	process_t* nproc = kalloc(sizeof(process_t));
 	nproc->next_proc = NULL;
-	nproc->pid = next_pid++;
+	nproc->pid = 0;
 	nproc->image.stack_base = malloc_pa(0x10000);
 	nproc->register_context.useresp = nproc->image.stack_base +0x10000;
 	nproc->image.page_directory = current_directory;
 	set_kernel_stack(kalloc(0xA0000) + 0xA0000);
 	proc_queue = nproc;
 	current_process = nproc;
+	init_pit(100);
+	asm("sti");
+	for(int i = 0; i < 10; i++)
+	asm("hlt");
+	
 }
 
 
 void perform_context_switch(registers_t* state)
 {
+	static int first_switch = 1;
 	if(scheduler_enabled)
 	{
 		memcpy(&current_process->register_context, state, sizeof(registers_t));

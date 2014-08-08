@@ -37,7 +37,7 @@ void panic(const char* format, ...)
 {
 	
 	klog_output(&textscreen_device);
-	clrscr();
+	
 	
 	/*
 	 * The kernel log is useless at this point so disable it
@@ -50,7 +50,7 @@ void panic(const char* format, ...)
 	vsprintf(msg_buff, format, argp);
 	va_end(argp);
 	
-	printk("fatal kernel panic: %s\n\n", msg_buff);
+	printk("kernel panic: %s\n\n", msg_buff);
 	printk("The system is HALTED!\n\0");
 	
 	
