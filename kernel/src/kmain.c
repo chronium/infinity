@@ -22,6 +22,7 @@
 #include <infinity/interrupt.h>
 #include <infinity/device.h>
 #include <infinity/kheap.h>
+#include <infinity/paging.h>
 #include <infinity/textscreen.h>
 
 extern device_t textscreen_device;
@@ -32,7 +33,8 @@ void kmain(multiboot_info_t* mbootinfo)
 	init_gdt();
 	init_idt();
 	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
-
+	init_paging();
+	textscreen_device.write("Hello, World!", 12, 0);
 	int i = 3 / 0;
 	while(1);
 }
