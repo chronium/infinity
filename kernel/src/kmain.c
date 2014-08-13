@@ -24,8 +24,13 @@
 #include <infinity/kheap.h>
 #include <infinity/paging.h>
 #include <infinity/textscreen.h>
+#include <infinity/types.h>
+#include <infinity/fs/ifs.h>
 
 extern device_t textscreen_device;
+
+static void run_init();
+static void cpu_idle();
 
 void kmain(multiboot_info_t* mbootinfo)
 {
@@ -35,15 +40,33 @@ void kmain(multiboot_info_t* mbootinfo)
 	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
 	init_paging();
 	init_sched();
-	int test = fork();
-	if(test)
+	mount_initrd((void*)*((uint32_t*)mbootinfo->mods_addr));
+	printk("We are this far! Good. good.");
+	printk("Hello there\n");
+	int i = open("/etc/passwd", 0);
+	char tmp[100];
+	if(read(0, tmp, 100) == -1)
+		printk("Its -1!");
+	printk("val %s", tmp);
+	while(1);
+	run_init();
+}
+
+static void run_init()
+{
+	pid_t pid = fork();
+	if(pid)
 	{
-		printk("I'm the child");
+		panic("could not start init");
 	}
 	else
-	{
-		printk("I'm the parent thread");
+		cpu_idle();
+}
+
+static void cpu_idle()
+{
+	while(1) {
+		asm("hlt");
 	}
-	while(1);
 }
 

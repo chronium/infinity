@@ -1,8 +1,8 @@
-CC = i686-elf-gcc
+CC = /usr/local/cross/bin/i686-elf-gcc
 AS = nasm
 AFLAGS = -f elf32
 CFLAGS = -c -std=gnu99 -ffreestanding -O0 -Wall -w -g -I ./include
-LD = $(CC)
+LD = i686-elf-gcc
 LDFLAGS = -T linker.ld -ffreestanding -O2 -nostdlib -gcc
 
 TARGET = bin/infinity.bin
@@ -24,7 +24,7 @@ clean:
 
 iso:
 	nm bin/infinity.bin > bin/initrd/boot/INFINITY.MAP
-	mkinfrd -d bin/initrd -o bin/iso/initrd.img
+	mkifsrd -d bin/initrd -o bin/iso/initrd.img
 	cp bin/infinity.bin bin/iso/boot/infinity.bin
 	cp config/grub.cfg bin/iso/boot/grub/grub.cfg
 	grub2-mkrescue -o bin/infinity.iso bin/iso

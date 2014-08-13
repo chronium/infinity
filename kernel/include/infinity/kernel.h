@@ -19,10 +19,11 @@
 #define KERNEL_H
 
 #include <infinity/device.h>
+#include <infinity/module.h>
 
-typedef struct kernelmsg_t kernelmsg_t;
+typedef struct kernelmsg kernelmsg_t;
 
-struct kernelmsg_t {
+struct kernelmsg {
 	char msg_string[512];
 	kernelmsg_t* last_msg;
 };
@@ -32,5 +33,6 @@ extern void klog_output(device_t* dev);
 extern void printk(const char* format, ...);
 extern void panic(const char* format, ...);
 extern void shutdown();
-
+extern int insert_module(module_t* mod);
+extern int init_module(module_t* mod);
 #endif

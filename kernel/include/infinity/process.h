@@ -22,13 +22,12 @@
 #include <infinity/types.h>
 #include <infinity/paging.h>
 #include <infinity/interrupt.h>
+#include <infinity/virtfs.h>
 
-typedef struct process_image_t process_image_t;
-typedef struct process_t process_t;
+typedef struct process_image process_image_t;
+typedef struct process process_t;
 
-
-
-struct process_image_t
+struct process_image
 {
 	void* sig_handlers[256];
 	page_directory_t* page_directory;
@@ -40,14 +39,15 @@ struct process_image_t
 	uint32_t image_brk;
 	uint32_t paged;
 	process_image_t* next_image;
-	registers_t previous_state;
+	
 };
 
-struct process_t
+struct process
 {
 	pid_t pid;
 	pid_t parent_pid;
 	process_image_t image;
+	file_descriptor_t* file_descriptors;
 	registers_t register_context;
 	process_t* next_proc;
 

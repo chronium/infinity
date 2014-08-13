@@ -14,18 +14,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
+ 
+/*
+ * idt.c
+ * Low level code to load the kernel idt
+ */
 #include <stdint.h>
 #include <infinity/idt.h>
 #include <infinity/portio.h>
 #include <infinity/interrupt.h>
 #include <infinity/common.h>
 
-/*
- * idt.c
- * Low level code to load the kernel idt
- */
- 
+
 static idtentry_t idt[256];
 
 static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);

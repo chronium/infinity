@@ -70,6 +70,11 @@ void perform_context_switch(registers_t* state)
 		current_process = current_process->next_proc;
 		if(!current_process)
 			current_process = proc_queue;
+		if(first_switch)
+		{
+			current_process->image.stack_base = state->esp - 0x1000;
+			first_switch = 0;
+		}
 		memcpy(state, &current_process->register_context, sizeof(registers_t));
 
 		switch_page_directory(current_process->image.page_directory);

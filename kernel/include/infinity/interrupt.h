@@ -36,7 +36,7 @@ typedef struct
 	uint32_t eflags;
 	uint32_t useresp;
 	uint32_t ss;
-} __attribute__((packed)) registers_t; 
+} registers_t; 
 
 typedef void (*inthandler_t)(registers_t* registers);
 

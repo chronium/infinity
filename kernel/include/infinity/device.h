@@ -20,6 +20,7 @@
 #define DEVICE_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef enum 
 {
@@ -28,9 +29,9 @@ typedef enum
 } devtype_t;
 
 
-typedef struct device_t device_t;
+typedef struct device device_t;
 
-struct device_t
+struct device
 {
 	devtype_t device_type;
 	char* device_name;
