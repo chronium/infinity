@@ -25,15 +25,6 @@ typedef enum
 
 typedef struct
 {
-	uint16_t Year;
-	uint8_t Month;
-	uint8_t Day;
-	uint8_t Hour;
-	uint8_t Minute;
-} __attribute__((packed)) IFSTimeStamp;
-
-typedef struct
-{
 	uint8_t mag0;
 	uint8_t mag1;
 	uint8_t mag2;
@@ -52,13 +43,13 @@ typedef struct
 typedef struct
 {
 	char file_name[128];
-	IFSTimeStamp CreatedTime;
-	IFSTimeStamp ModifiedTime;
+	int created_time;
+	int modified_time;
 	uint32_t block_index;
 	uint32_t data_index;
 	uint32_t file_size;
 	FileType file_type;
-	uint32_t UMask;
+	uint32_t mode;
 	uint32_t UID;
 	uint32_t GID;
 }  __attribute__((packed))IFSFileEntry;

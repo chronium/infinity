@@ -21,37 +21,37 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct
+struct page
 {
-	uint32_t present    : 1;
-	uint32_t rw         : 1;
-	uint32_t user       : 1;
-	uint32_t accessed   : 1;
-	uint32_t dirty      : 1;
-	uint32_t unused     : 7;
-	uint32_t frame      : 20;
-} __attribute__((packed)) page_t;
+	uint32_t 			present    : 1;
+	uint32_t 			rw         : 1;
+	uint32_t 			user       : 1;
+	uint32_t 			accessed   : 1;
+	uint32_t 			dirty      : 1;
+	uint32_t 			unused     : 7;
+	uint32_t 			frame      : 20;
+} __attribute__((packed));
 
-typedef struct
+struct page_table
 {
-	page_t pages[1024];
-} page_table_t;
+	struct page 		pages[1024];
+};
 
-typedef struct
+struct page_directory
 {  
-	page_table_t* tables[1024];
-	uint32_t tables_physical[1024];
-	uint32_t physical_addr;
-} page_directory_t;
+	struct page_table* 	tables[1024];
+	uint32_t 			tables_physical[1024];
+	uint32_t 			physical_addr;
+};
 
 
 extern void init_paging();
-extern void switch_page_directory(page_directory_t* dir);
+extern void switch_page_directory(struct page_directory* dir);
 extern void enable_paging();
 extern void disable_paging();
-extern void page_alloc(page_directory_t* dir, uint32_t vaddr, uint32_t paddr, bool write, bool user);
-extern void page_remap(page_directory_t* dir, uint32_t vaddr, uint32_t paddr);
-extern void page_free(page_directory_t* dir, uint32_t vaddr);
-extern page_directory_t* create_new_page_directory();
+extern void page_alloc(struct page_directory* dir, uint32_t vaddr, uint32_t paddr, bool write, bool user);
+extern void page_remap(struct page_directory* dir, uint32_t vaddr, uint32_t paddr);
+extern void page_free(struct page_directory* dir, uint32_t vaddr);
+extern struct page_directory* create_new_page_directory();
 
 #endif

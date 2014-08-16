@@ -22,6 +22,6 @@
 #include <stdint.h>
 #include <infinity/interrupt.h>
 
-extern void page_fault_handler(registers_t* regs);
+extern void page_fault_handler(struct regs* regs);
 
 #endif

@@ -4,12 +4,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -26,21 +26,21 @@
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
 
-extern page_directory_t* current_directory;
+extern struct page_directory *current_directory;
 
-static page_frame_t* free_frame_stack = NULL;
-static page_frame_t* allocated_frame_stack = NULL;
+static struct page_frame *free_frame_stack = NULL;
+static struct page_frame *allocated_frame_stack = NULL;
 
-static void* phys_free_address = 0x1E84800;
+static void *phys_free_address = 0x1E84800;
 
-static page_frame_t* pop_free_frame();
+static struct page_frame *pop_free_frame();
 
-void* frame_alloc(void* vaddr, int flags)
+void *frame_alloc(void *vaddr, int flags)
 {
-	page_frame_t* frame = pop_free_frame();
-	if(!frame)
-	{
-		frame = (page_frame_t*)kalloc(sizeof(page_frame_t));
+	struct page_frame *frame = pop_free_frame();
+
+	if (!frame) {
+		frame = (struct page_frame *)kalloc(sizeof(struct page_frame));
 		frame->phys_addr = phys_free_address;
 		phys_free_address += 0x1000;
 	}
@@ -50,20 +50,17 @@ void* frame_alloc(void* vaddr, int flags)
 	frame->last_frame = allocated_frame_stack;
 	frame->page_directory = current_directory;
 	allocated_frame_stack = frame;
-	
 }
 
-void frame_free(void* vaddr)
+void frame_free(void *vaddr)
 {
 	vaddr = (uint32_t)vaddr;
-	page_frame_t* curr = allocated_frame_stack;
-	page_frame_t* prev = curr;
-	while(curr)
-	{
-		if(curr->virt_addr == vaddr && curr->page_directory == current_directory)
-		{
+	struct page_frame *curr = allocated_frame_stack;
+	struct page_frame *prev = curr;
+	while (curr) {
+		if (curr->virt_addr == vaddr && curr->page_directory == current_directory) {
 			curr->ref_count = 0;
-			if(prev == curr)
+			if (prev == curr)
 				allocated_frame_stack = curr->last_frame;
 			else
 				prev->last_frame = curr->last_frame->last_frame = prev->last_frame;
@@ -78,13 +75,13 @@ void frame_free(void* vaddr)
 }
 
 
-static page_frame_t* pop_free_frame()
+static struct page_frame *pop_free_frame()
 {
-	page_frame_t* curr = free_frame_stack;
-	if(!curr)
+	struct page_frame *curr = free_frame_stack;
+
+	if (!curr) {
 		return NULL;
-	else
-	{
+	} else {
 		free_frame_stack = curr->last_frame;
 		return curr;
 	}

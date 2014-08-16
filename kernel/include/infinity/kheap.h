@@ -27,13 +27,13 @@ typedef enum {
 	MBLOCK_FREE = 1
 } memorystate_t;
 
-typedef struct {
-	uint32_t magic;
-	memorystate_t state;
-	void* memory;
-	size_t size;
-	void* next_block;
-} mblock_t;
+struct mblock {
+	uint32_t 			magic;
+	memorystate_t 		state;
+	void* 				memory;
+	size_t 				size;
+	void* 				next_block;
+};
 
 extern void init_kheap(uint32_t i);
 extern void* kalloc(size_t s);

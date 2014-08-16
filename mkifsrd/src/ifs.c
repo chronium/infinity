@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "ifs.h"
 
 
@@ -71,8 +72,12 @@ void create_image(void* image, int size)
 	block_pool = (image + sizeof(IFSVolume));
 	for(int i = 0; i < 0xFFFF; i++)
 		block_pool[i].state = BLOCK_NONEXISTENT;
-	vol_header->root_directory = ifs_block_alloc()->data;
-	memset(initrd + vol_header->root_directory, 0xFF, 1024);
+	vol_header->root_directory = 0;
+	IFSFileEntry* rootdir = ifs_create_file_entry();
+	rootdir->data_index = 1;
+	IFSBlock* root = ifs_block_alloc();
+	
+	memset(initrd + ifs_get_address(1), 0xFF, 1024);
 
 	/*
 	 * Yes Courtney, even though you completely fucked me over
@@ -80,12 +85,12 @@ void create_image(void* image, int size)
 	 * magic number. Not that you will ever see this. Maybe because
 	 * I still love you, maybe because, well I have no fucking clue....
 	 *
-	 * Magic number: 0xCB0A0D0E (Big endian)
+	 * Magic number: 0xCB0A0D0D (Big endian)
 	 */
 	vol_header->mag0 = 0xCB;
 	vol_header->mag1 = 0x0A;
 	vol_header->mag2 = 0x0D;
-	vol_header->mag3 = 0x0E;
+	vol_header->mag3 = 0x0D;
 }
 
 
@@ -96,13 +101,13 @@ void make_dir(char* name)
 {
 	if(name[0] == '/') // Ignore leading /
 		name++;
-	int parent = 0; // Root by default
+	int parent = 1; // Root by default
 	if(contains(name, '/')) // Parent directory?
 	{
 		char* tmp = (char*)malloc(strlen(name));
 		strcpy(tmp, name);
 		*strrchr(tmp, '/') = 0;
-		parent = ifs_get_directory(0, tmp);
+		parent = ifs_get_directory(1, tmp);
 		free(tmp);
 	}
 	int* directory = ifs_get_directory_table(parent);
@@ -127,13 +132,13 @@ void add_file(char* name, char* contents, int len)
 {
 	if(name[0] == '/') // Ignore leading /
 		name++;
-	int parent = 0; // Root by default
+	int parent = 1; // Root by default
 	if(contains(name, '/')) // Parent directory?
 	{
 		char* tmp = (char*)malloc(strlen(name));
 		strcpy(tmp, name);
 		*strrchr(tmp, '/') = 0;
-		parent = ifs_get_directory(0, tmp);
+		parent = ifs_get_directory(1, tmp);
 		free(tmp);
 	}
 	int* directory = ifs_get_directory_table(parent);
@@ -244,7 +249,9 @@ static IFSFileEntry* ifs_create_file_entry()
 	memset(initrd + ptr, 0, sizeof(IFSFileEntry));
 	IFSFileEntry* entry = (IFSFileEntry*)(initrd + ptr);
 	entry->block_index = index;
-	entry->UMask = 484;
+	entry->mode = 484;
+	entry->created_time = time(NULL);
+	entry->modified_time = time(NULL);
 	return entry;
 }
 /*

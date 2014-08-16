@@ -38,44 +38,35 @@ typedef enum ifs_filetype {
 	CHAR_DEVICE = 7
 } ifs_filetype_t;
 
-typedef struct ifs_timestamp
-{
-	uint16_t year;
-	uint8_t month;
-	uint8_t day;
-	uint8_t hour;
-	uint8_t minute;
-} ifs_timestamp_t;
-
 typedef struct ifs_volume_hdr
 {
-	uint8_t mag0;
-	uint8_t mag1;
-	uint8_t mag2;
-	uint8_t mag3;
-	char volume_name[128];
-	uint32_t id;
-	uint32_t volume_size;
-	uint32_t file_block_size;
-	uint32_t file_block_bount;
-	uint32_t block_pool;
-	uint32_t block_pool_size;
-	uint32_t root_directory;
-	uint32_t file_count;
+	uint8_t 		mag0;
+	uint8_t 		mag1;
+	uint8_t 		mag2;
+	uint8_t 		mag3;
+	char 			volume_name[128];
+	uint32_t 		id;
+	uint32_t 		volume_size;
+	uint32_t 		file_block_size;
+	uint32_t 		file_block_bount;
+	uint32_t 		block_pool;
+	uint32_t 		block_pool_size;
+	uint32_t 		root_directory;
+	uint32_t 		file_count;
 }  ifs_volume_hdr_t;
 
 typedef struct isf_entry
 {
-	char file_name[128];
-	ifs_timestamp_t created_time;
-	ifs_timestamp_t modified_time;
-	uint32_t block_index;
-	uint32_t data_index;
-	uint32_t file_size;
-	ifs_filetype_t file_type;
-	uint32_t umask;
-	uint32_t uid;
-	uint32_t gid;
+	char 			file_name[128];
+	int 			created_time;
+	int 			modified_time;
+	uint32_t 		block_index;
+	uint32_t 		data_index;
+	uint32_t 		file_size;
+	ifs_filetype_t 	file_type;
+	uint32_t 		umask;
+	uint32_t 		uid;
+	uint32_t 		gid;
 } ifs_entry_t;
 
 typedef struct ifs_block

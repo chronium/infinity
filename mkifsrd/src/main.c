@@ -1,12 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <time.h>
 #include "ifs.h"
 
 static void process_directory(char* dir, char* rdir);
 
 int main(int argc, char* argv[])
 {
+
 	void* img = (void*)malloc(5000000);
 	create_image(img, 5000000);
 	char* outp = "initrd.img";
@@ -43,6 +45,7 @@ static void process_directory(char* path, char* rel_path)
 		{
 			sprintf(fpath, "%s/%s", path, ent->d_name);
 			sprintf(rpath, "%s/%s", rel_path, ent->d_name);
+			
 			if(ent->d_type == DT_DIR)
 			{
 				make_dir(rpath);

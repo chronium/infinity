@@ -22,8 +22,8 @@
 #include <infinity/interrupt.h>
 
 void init_sched();
-void perform_context_switch(registers_t* context);
-void schedule_process(process_t* proc);
+void perform_context_switch(struct regs* context);
+void schedule_process(struct process* proc);
 void scheduler_enable();
 void scheduler_disable();
 

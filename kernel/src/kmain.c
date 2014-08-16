@@ -4,12 +4,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -26,47 +26,42 @@
 #include <infinity/textscreen.h>
 #include <infinity/types.h>
 #include <infinity/fs/ifs.h>
+#include <infinity/stat.h>
+#include <infinity/dirent.h>
+#include <infinity/time.h>
+#include <infinity/ringbuffer.h>
 
-extern device_t textscreen_device;
+extern struct device textscreen_device;
 
 static void run_init();
 static void cpu_idle();
 
-void kmain(multiboot_info_t* mbootinfo)
+void kmain(multiboot_info_t *mbootinfo)
 {
+	klog(1);
 	init_textscreen();
 	init_gdt();
 	init_idt();
-	init_kheap(*(uint32_t*)(mbootinfo->mods_addr+4));
+	init_kheap(*(uint32_t *)(mbootinfo->mods_addr + 4));
 	init_paging();
 	init_sched();
-	mount_initrd((void*)*((uint32_t*)mbootinfo->mods_addr));
-	printk("We are this far! Good. good.");
-	printk("Hello there\n");
-	int i = open("/etc/passwd", 0);
-	char tmp[100];
-	if(read(0, tmp, 100) == -1)
-		printk("Its -1!");
-	printk("val %s", tmp);
-	while(1);
+	mount_initrd((void *)*((uint32_t *)mbootinfo->mods_addr));
+
 	run_init();
 }
 
 static void run_init()
 {
 	pid_t pid = fork();
-	if(pid)
-	{
+
+	if (pid)
 		panic("could not start init");
-	}
 	else
 		cpu_idle();
 }
 
 static void cpu_idle()
 {
-	while(1) {
-		asm("hlt");
-	}
+	while (1)
+		asm ("hlt");
 }
-

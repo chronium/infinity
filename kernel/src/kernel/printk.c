@@ -4,12 +4,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -24,56 +24,55 @@
  * specify a device to output to (The console, a serial
  * port, ect)
  */
- 
+
 #include <stdint.h>
 #include <stddef.h>
 #include <infinity/device.h>
 #include <infinity/common.h>
 #include <infinity/textscreen.h>
+#include <infinity/ringbuffer.h>
 #include <infinity/kernel.h>
 
+extern struct device textscreen_device;
 
-extern device_t textscreen_device;
-
-static kernelmsg_t* kmsg_stack = NULL;
-static device_t* printk_output = &textscreen_device;
+static struct device *printk_output = &textscreen_device;
 static int should_log_messages = 1;
+static struct ring_buffer msg_queue;
 
-static void kernel_log_msg(kernelmsg_t* msg);
+static void kernel_log_msg(kernelmsg_t *msg);
 
-void printk(const char* format, ...)
+void printk(const char *format, ...)
 {
 	va_list argp;
-	va_start(argp, format);	
+
+	va_start(argp, format);
 	char tmp_buff[512];
 	memset(tmp_buff, 0, 512);
 	vsprintf(tmp_buff, format, argp);
 	va_end(argp);
-	if(should_log_messages)
-	{
-		kernelmsg_t* msg = (kernelmsg_t*)kalloc(sizeof(kernelmsg_t));
-		memcpy(msg->msg_string, tmp_buff, 512);
-		kernel_log_msg(msg);
+	if (should_log_messages) {
+		kernelmsg_t msg;
+		memcpy(&msg.msg_string, tmp_buff, 512);
+		gmtime_r(time(NULL), &msg.msg_tm);
+		kernel_log_msg(&msg);
 	}
-	if(printk_output)
+	if (printk_output)
 		printk_output->write(tmp_buff, strlen(tmp_buff), 0);
 }
 
-/*
- * Turns kernel logging on or off
- */
 void klog(int log)
 {
+	if (log)
+		rb_init(&msg_queue, sizeof(kernelmsg_t) * 256);
 	should_log_messages = log;
 }
 
-void klog_output(device_t* dev)
+void klog_output(struct device *dev)
 {
 	printk_output = dev;
 }
 
-static void kernel_log_msg(kernelmsg_t* msg)
+static void kernel_log_msg(kernelmsg_t *msg)
 {
-	msg->last_msg = kmsg_stack;
-	kmsg_stack = msg;
+	rb_push(&msg_queue, msg, sizeof(kernelmsg_t));
 }
