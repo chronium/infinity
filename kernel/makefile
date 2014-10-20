@@ -1,4 +1,4 @@
-CC = /usr/local/cross/bin/i686-elf-gcc
+CC = i686-elf-gcc
 AS = nasm
 AFLAGS = -f elf32
 CFLAGS = -c -std=gnu99 -ffreestanding -O0 -Wall -w -g -I ./include

@@ -30,7 +30,11 @@
 #include <infinity/stat.h>
 #include "file-descriptor.h"
 
-
+/*
+ * Reads information about a file
+ * @param _fd	The file descriptor to read from
+ * @param buf	A stat struct to write the information into
+ */
 int fstat(int _fd, struct stat *buf)
 {
 	struct file_descriptor *fd = get_file_descriptor(_fd);

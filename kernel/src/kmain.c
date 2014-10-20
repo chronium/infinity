@@ -38,15 +38,17 @@ static void cpu_idle();
 
 void kmain(multiboot_info_t *mbootinfo)
 {
+	
+	init_kheap(*(uint32_t *)(mbootinfo->mods_addr + 4));
 	klog(1);
 	init_textscreen();
 	init_gdt();
 	init_idt();
-	init_kheap(*(uint32_t *)(mbootinfo->mods_addr + 4));
 	init_paging();
 	init_sched();
 	mount_initrd((void *)*((uint32_t *)mbootinfo->mods_addr));
-
+	printk("Hello, World!\n");
+	while(1);
 	run_init();
 }
 

@@ -31,6 +31,11 @@
 
 extern struct process *current_process;
 
+/*
+ * Opens a file, returns -1 on failure
+ * @param _path	Path to the file
+ * @param flags	Flags to open the file with
+ */
 int open(const char *_path, int flags)
 {
 	struct file_descriptor *fd = (struct file_descriptor *)get_new_fd();
@@ -60,6 +65,9 @@ int open(const char *_path, int flags)
 	}
 }
 
+/*
+ * Closes a file, returns -1 on failure
+ */
 int close(int _fd)
 {
 	struct file_descriptor *i = current_process->file_descriptors;

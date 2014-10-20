@@ -33,6 +33,8 @@
 #include <infinity/ringbuffer.h>
 #include <infinity/kernel.h>
 
+#define QUEUE_SIZE		sizeof(kernelmsg_t) * 256
+
 extern struct device textscreen_device;
 
 static struct device *printk_output = &textscreen_device;
@@ -41,10 +43,14 @@ static struct ring_buffer msg_queue;
 
 static void kernel_log_msg(kernelmsg_t *msg);
 
+/*
+ * Logs a kernel message and prints it to 
+ * an output device if specified
+ * @param format	Format of the string
+ */
 void printk(const char *format, ...)
 {
 	va_list argp;
-
 	va_start(argp, format);
 	char tmp_buff[512];
 	memset(tmp_buff, 0, 512);
@@ -60,13 +66,46 @@ void printk(const char *format, ...)
 		printk_output->write(tmp_buff, strlen(tmp_buff), 0);
 }
 
+/*
+ * Turns logging on/off
+ * @param log	Should we log?
+ */
 void klog(int log)
 {
-	if (log)
-		rb_init(&msg_queue, sizeof(kernelmsg_t) * 256);
+	if (msg_queue.rb_len != QUEUE_SIZE)
+		rb_init(&msg_queue, QUEUE_SIZE);
 	should_log_messages = log;
 }
 
+/*
+ * Flushes the kernel log into a buffer
+ * @param buf	A buffer to store the kernel log
+ * @param size	The size of buf
+ */
+void flush_klog(char *buf, int size)
+{
+	int logsz = msg_queue.rb_pos > msg_queue.rb_len ? msg_queue.rb_len : msg_queue.rb_pos;
+
+	char *log = (char*)kalloc(logsz);
+	rb_flush(&msg_queue, log, logsz);	
+
+	int bptr = 0;
+	for(int i = 0; i < logsz && bptr < size; i += sizeof(struct kernelmsg))
+	{
+		struct kernelmsg *msg = (struct kernelmsg*)(log + i);
+		char tmp[290];
+		memset(tmp, 0, 290);
+		sprintf(tmp, "[%d:%d] %s\n", msg->msg_tm.tm_hour, msg->msg_tm.tm_min, msg->msg_string);
+		memcpy(buf + bptr, tmp, strlen(tmp));
+		bptr += strlen(tmp);
+	}
+	kfree(log);
+}
+
+/*
+ * Sets the output device
+ * @param dev	The device to display messages
+ */
 void klog_output(struct device *dev)
 {
 	printk_output = dev;

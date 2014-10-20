@@ -36,9 +36,7 @@
 extern struct page_directory *current_directory;
 
 struct process *current_process = NULL;
-
 static struct process *proc_queue;
-
 static char scheduler_enabled = 1;
 
 void init_sched()
@@ -70,10 +68,7 @@ void perform_context_switch(struct regs *state)
 		current_process = current_process->next_proc;
 		if (!current_process)
 			current_process = proc_queue;
-		if (first_switch) {
-			current_process->image.stack_base = state->esp - 0x1000;
-			first_switch = 0;
-		}
+		
 		memcpy(state, &current_process->register_context, sizeof(struct regs));
 
 		switch_page_directory(current_process->image.page_directory);

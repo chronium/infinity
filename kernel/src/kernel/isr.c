@@ -27,6 +27,11 @@
 
 inthandler_t isr_handlers[256];
 
+/*
+ * Requests an ISR handler
+ * @param inum		The interrupt to hook
+ * @param handler	A callback for the ISR
+ */
 int request_isr(int inum, inthandler_t handler)
 {
 	if (isr_handlers[inum])
@@ -36,12 +41,21 @@ int request_isr(int inum, inthandler_t handler)
 	return 0;
 }
 
+/*
+ * Frees an ISR handler
+ * @param inum		The ISR to free
+ */
 int free_isr(int inum)
 {
 	isr_handlers[inum] = NULL;
 	return 0;
 }
 
+/*
+ * This is an ISR call back. This shouldn't be called
+ * in normal code
+ * @param regs		Register state before ISR was invoked
+ */
 void handle_isr(struct regs registers)
 {
 	int i = registers.interrupt & 0xFF;

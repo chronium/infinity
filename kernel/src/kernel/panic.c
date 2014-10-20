@@ -33,6 +33,11 @@ extern struct device textscreen_device;
 
 static void display_registers(struct regs *regs);
 
+/*
+ * Gracefully brings the kernel down in the
+ * result of a fatal error
+ * @param format	The format of the message to display
+ */
 void panic(const char *format, ...)
 {
 	klog_output(&textscreen_device);

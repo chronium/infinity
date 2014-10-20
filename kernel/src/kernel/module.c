@@ -26,6 +26,10 @@
 
 struct module *kmodule_list = NULL;
 
+/*
+ * Inserts a kernel module, returns 0 if success
+ * @param mod	The module to insert
+ */
 int insert_module(struct module *mod)
 {
 	if (mod->mod_magic == MODULE_MAGIC) {
@@ -44,6 +48,10 @@ int insert_module(struct module *mod)
 	}
 }
 
+/*
+ * Unitializes a kernel module
+ * @param mod	The module to initialize
+ */
 int init_module(struct module *mod)
 {
 	return mod->mod_init();

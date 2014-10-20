@@ -27,6 +27,10 @@ static struct filesystem *filesystems = NULL;
 
 static struct vnode *vfs_getnode_recurse(struct vnode *parent, const char *path);
 
+/*
+ * Registers a filesystem
+ * @oaram fs	The filesystem to register
+ */
 void register_filesystem(struct filesystem *fs)
 {
 	fs->next_fs = NULL;
@@ -41,6 +45,10 @@ void register_filesystem(struct filesystem *fs)
 	}
 }
 
+/*
+ * Mounts a filesystem onto the virtual filesystem, returns
+ * -1 if failure
+ */
 int mount(const char *path, const char *fs, struct device *dev)
 {
 	return -1;

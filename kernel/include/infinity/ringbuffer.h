@@ -21,9 +21,10 @@
 #include <infinity/sync.h>
 
 struct ring_buffer {
-    char* 		rb_buff;
+    char 		*rb_buff;
     int 		rb_len;
     int 		rb_pos;
+    int			rb_start;
     spinlock_t	rb_lock;
 };
 
@@ -31,5 +32,5 @@ struct ring_buffer {
 extern void rb_init(struct ring_buffer* rb, int size);
 extern void rb_push(struct ring_buffer* rb, const void* data, int len);
 extern void rb_pop(struct ring_buffer* rb, void* buf, int len);
-
+extern void *rb_flush(struct ring_buffer *rb, void *buf, int size);
 #endif
