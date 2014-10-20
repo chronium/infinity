@@ -15,6 +15,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+
+/*
+ * kheap.c
+ * The kernel heap. This is the probably the most important file as it controls
+ * memory allocation.
+ */
+ 
 #include <stddef.h>
 #include <stdint.h>
 #include <infinity/kheap.h>
@@ -24,149 +31,149 @@
 #define GUARD_1         0xCB0A0D0D
 #define GUARD_2         0xCB05160E
 
-/*
- * kheap.c
- * The kernel heap
- * NOTE: Remind myself to rewrite this, the current implemenation
- * uses a linked list which works; however finding a free block
- * is quite slow. If I use two seperate stacks (One for free blocks,
- * one for allocated blocks) speed should be that of O(1) (I think)
- */
 
-struct mblock *mlist;                   // Heap linked list
+struct mblock *free_top;
+struct mblock *used_top;
 
-void *freeaddress;                      // The next free address
+void *free_address;
 
 static void *kheap_alloc(size_t size);
 static struct mblock *kheap_get_block(size_t size);
 
 /*
  * Initiliazes the kernel heap using a custom placement address
+ * @param i		The end of kernel memory, where to place the heap
  */
 void init_kheap(uint32_t i)
 {
-	freeaddress = ((int)i % 8) + i;
-	mlist = NULL;
-}
-
-
-
-void *kalloc(size_t size)
-{
-	struct mblock *new_block = kheap_get_block(size);
-
-	if (new_block->state == MBLOCK_ALLOCATED)
-		new_block->memory = kheap_alloc(size);
-	else
-		new_block->state = MBLOCK_ALLOCATED;
-	return new_block->memory;
+	free_address = ((int)i % 8) + i;
+	free_top = NULL;
+	used_top = NULL;
 }
 
 /*
- * Allocates memory in the kernel heap
- */
-static void *kheap_alloc(size_t size)
+ * Allocates space on the kernel heap. Returns an 8 byte aligned
+ * pointer
+ * @param size	How many bytes to allocated
+ * @returns		An 8 byte aligned pointer
+ */ 
+void *kalloc(size_t size)
 {
-	size_t real_size = size + (size % 8) + 8;
+	struct mblock *new_mb = kheap_get_block(size);
+	if(!new_mb) {
+		new_mb = kheap_alloc(sizeof(struct mblock));
+		new_mb->memory = kheap_alloc(size);
+	}
+	
+	new_mb->next_block = used_top;
+	new_mb->size = size;
+	used_top = new_mb;
+	return new_mb->memory;
 
-	void *address = freeaddress;
-
-	freeaddress += real_size;
-	*((int *)address) = GUARD_1;
-	*((int *)(address + real_size - 4)) = GUARD_2;
-	return address + 4;
 }
 
+static void *kheap_alloc(size_t size)
+{
+	size_t sz_aligned = size + (size % 8) + 8;
+	
+	*((int*)free_address) = GUARD_1;
+	*((int*)(free_address + size + 4))= GUARD_2;
+
+	free_address += sz_aligned;
+	return 4 + free_address - sz_aligned;
+}
 
 static struct mblock *kheap_get_block(size_t size)
 {
-	size = size + (size % 8);
-	struct mblock *i = mlist;
-	struct mblock *last = i;
-	struct mblock *ret = NULL;
-	uint32_t smallest = -1;
-	while (i) {
-		if (i->size >= size && i->size < smallest && i->state == MBLOCK_FREE) {
-			smallest = i->size;
-			ret = i;
+	struct mblock *i = free_top;
+	struct mblock *p = i;
+	while(i) {
+		if(i->size >= size) {
+			if(p == i)
+				free_top = i->next_block;
+			else 
+				p->next_block = i->next_block;
+			return i;
 		}
-		last = i;
+		p = i;
 		i = i->next_block;
 	}
-	if (ret) {
-		return ret;
-	} else {
-		struct mblock *new_block = (struct mblock *)kheap_alloc(sizeof(struct mblock));
-		new_block->size = size;
-		new_block->magic = MAGIC;
-		new_block->state = MBLOCK_ALLOCATED;
-		new_block->next_block = NULL;
-		if (mlist == NULL)
-			mlist = new_block;
-		else
-			last->next_block = new_block;
-		return new_block;
-	}
+	return NULL;
 }
 /*
- * Reallocates an existing block of memory, with
- * a new size
+ * Reallocates an existing block of memory, with a new size
+ * @param ptr	The pointer of the original memory block
+ * @param size	The size of the new memory block
+ * 
+ * @returns		A pointer to a new block of memory, NULL if failure
  */
 void *realloc(void *ptr, size_t size)
 {
-	size_t org = ksize(ptr);
-
-	kfree(ptr);
-	void *ret_val = kalloc(size);
-	memcpy(ret_val, ptr, org);
-	return ret_val;
+	void *tmp = ptr;
+	size_t sz = ksize(tmp);
+	if(sz != 0) {
+		kfree(tmp);
+		void *rtn = kalloc(size);
+		memcpy(rtn, tmp, sz);
+		return rtn;
+	} else
+		return 0;
 }
 
 /*
  * Allocates a block of memory, returns page aligned
  * address
+ * @param size	Size of the memory block
+ * @returns		A page aligned pointer to the new memory block
  */
 void *malloc_pa(size_t size)
 {
-	void *old_free = freeaddress;
+	void *old_free = free_address;
 
-	freeaddress = ((uint32_t)freeaddress & 0xFFFFF000) + 0x1000;
+	free_address = ((uint32_t)free_address & 0xFFFFF000) + 0x1000;
 
-	void *ret = freeaddress;
-	freeaddress += size;
+	void *ret = free_address;
+	free_address += size;
 	return ret;
 }
 
-static int lck = 0;
 /*
  * Frees a block of memory
+ * @param ptr	A pointer to the memory to free
  */
 void kfree(void *ptr)
 {
-	struct mblock *fb = mlist;
-
-	while (fb != NULL) {
-		if (ptr >= fb->memory && ptr < fb->memory + fb->size && fb->state == MBLOCK_ALLOCATED) {
-			if (*((int *)(fb->memory - 4)) != GUARD_1 || *((int *)(fb->memory + fb->size)) != GUARD_2)
+	struct mblock *i = used_top;
+	struct mblock *p = i;
+	while(i) {
+		if(i->memory == ptr) {
+			if (*((int*)(i->memory - 4)) != GUARD_1 || *((int*)(i->memory + i->size)) != GUARD_2 )
 				panic("kernel heap corruption!");
-			fb->state = MBLOCK_FREE;
-			return;
+			if(p == i)
+				used_top = i->next_block;
+			else 
+				p->next_block = i->next_block;
+			i->next_block = free_top;
+			free_top = i;
 		}
-		fb = fb->next_block;
+		p = i;
+		i = i->next_block;
 	}
 }
 
 /*
  * Gets the size of a block of memory
+ * @param ptr	Pointer to the block in question
+ * @returns		The size of ptr
  */
 size_t ksize(void *ptr)
 {
-	struct mblock *fb = mlist;
-
-	while (fb) {
-		if (ptr >= fb->memory && ptr < fb->memory + fb->size && fb->state == MBLOCK_ALLOCATED)
-			return fb->size;
-		fb = fb->next_block;
+	struct mblock *i = used_top;
+	while(i) {
+		if(i->memory == ptr) {
+			return i->size;
+		}
+		i = i->next_block;
 	}
 	return 0;
 }

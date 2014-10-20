@@ -22,14 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum {
-	MBLOCK_ALLOCATED = 0,
-	MBLOCK_FREE = 1
-} memorystate_t;
-
 struct mblock {
-	uint32_t 			magic;
-	memorystate_t 		state;
 	void* 				memory;
 	size_t 				size;
 	void* 				next_block;

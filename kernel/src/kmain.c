@@ -47,6 +47,12 @@ void kmain(multiboot_info_t *mbootinfo)
 	init_paging();
 	init_sched();
 	mount_initrd((void *)*((uint32_t *)mbootinfo->mods_addr));
+	void *test = kalloc(10);
+	void *test2 = kalloc(10);
+	void *test3 = kalloc(100);
+	kfree(test);
+	kfree(test2);
+	kfree(test3);
 	printk("Hello, World!\n");
 	while(1);
 	run_init();

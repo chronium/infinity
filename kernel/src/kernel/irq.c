@@ -27,6 +27,12 @@
 
 inthandler_t irq_handlers[16];
 
+/*
+ * Request an IRQ handler, returns 0 if the specified
+ * handler is free.
+ * @param inum		The IRQ to hook
+ * @param handler	The IRQ handler
+ */
 int request_irq(int inum, inthandler_t handler)
 {
 	if (inum > 16 || irq_handlers[inum])
@@ -36,12 +42,21 @@ int request_irq(int inum, inthandler_t handler)
 	return 0;
 }
 
+/*
+ * Frees an IRQ
+ * @param inum		The IRQ to free
+ */
 int free_irq(int inum)
 {
 	irq_handlers[inum] = NULL;
 	return 0;
 }
 
+/*
+ * This is an IRQ call back. This shouldn't be called
+ * in normal code
+ * @param regs		Register state before IRQ was invoked
+ */
 void handle_irq(struct regs registers)
 {
 	int i = registers.interrupt & 0xFF;
