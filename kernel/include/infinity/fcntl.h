@@ -15,8 +15,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef FCNTL_H
-#define FCNTL_H
+#ifndef INFINITY_FCNTL_H
+#define INFINITY_FCNTL_H
 
 #include <infinity/virtfs.h>
 #include <infinity/device.h>
@@ -35,8 +35,6 @@
 #define	F_SETFD		2
 #define	F_GETFL		3
 #define	F_SETFL		4
-
-
 
 extern int fcntl(int fd, int cmd, ...);
 extern int open(const char* path, int flags);

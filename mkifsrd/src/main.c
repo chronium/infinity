@@ -4,13 +4,13 @@
 #include <time.h>
 #include "ifs.h"
 
-static void process_directory(char* dir, char* rdir);
+static void process_directory(char* path, const char* rel_path);
 
 int main(int argc, char* argv[])
 {
 
 	void* img = (void*)malloc(5000000);
-	create_image(img, 5000000);
+	ifs_create_image(img, 5000000);
 	char* outp = "initrd.img";
 	char* tdir = NULL;
 	for(int i = 1; i < argc; i++)
@@ -33,12 +33,14 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-static void process_directory(char* path, char* rel_path)
+static void process_directory(char* path, const char* rel_path)
 {
 	struct dirent *ent;
 	DIR* dir = opendir (path);
 	char fpath[1000];
-	char rpath[1000];
+	char rpath[1000]; 
+	memset(fpath, 0, 1000);
+	memset(rpath, 0, 1000);
 	while ((ent = readdir (dir)) != NULL)
 	{
 		if(strcmp(&ent->d_name, ".") && strcmp(&ent->d_name, "..") )
@@ -48,7 +50,7 @@ static void process_directory(char* path, char* rel_path)
 			
 			if(ent->d_type == DT_DIR)
 			{
-				make_dir(rpath);
+				ifs_mkdir(remove_leading_slash(rpath));
 				process_directory(fpath, rpath);
 			}
 			else if (ent->d_type == DT_REG)
@@ -61,7 +63,7 @@ static void process_directory(char* path, char* rel_path)
 				char* tmp = (char*)malloc(size);
 				fread(tmp, 1, size, f);
 				fclose(f);
-				add_file(rpath, tmp, size);
+				ifs_add_file(remove_leading_slash(rpath), tmp, size);
 				free(tmp);
 			}
 		}
@@ -71,3 +73,4 @@ static void process_directory(char* path, char* rel_path)
 	closedir (dir);
 
 }
+

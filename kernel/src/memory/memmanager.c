@@ -35,6 +35,12 @@ static void *phys_free_address = 0x1E84800;
 
 static struct page_frame *pop_free_frame();
 
+/*
+ * Allocates a frame at a specified virtual address
+ * and sets the flags. 
+ * @param vaddr		The address in virtual memory
+ * @param flags		Page frame flags
+ */
 void *frame_alloc(void *vaddr, int flags)
 {
 	struct page_frame *frame = pop_free_frame();
@@ -52,6 +58,10 @@ void *frame_alloc(void *vaddr, int flags)
 	allocated_frame_stack = frame;
 }
 
+/*
+ * Frees a frame
+ * @param vaddr		A virtual address inside the frame to free
+ */
 void frame_free(void *vaddr)
 {
 	vaddr = (uint32_t)vaddr;

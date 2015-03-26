@@ -23,7 +23,7 @@ clean:
 	rm $(TARGET) $(OBJECTS)
 
 iso:
-	nm bin/infinity.bin > bin/initrd/boot/INFINITY.MAP
+	nm bin/infinity.bin > bin/initrd/infinity.map
 	mkifsrd -d bin/initrd -o bin/iso/initrd.img
 	cp bin/infinity.bin bin/iso/boot/infinity.bin
 	cp config/grub.cfg bin/iso/boot/grub/grub.cfg

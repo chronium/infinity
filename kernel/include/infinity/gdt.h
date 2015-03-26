@@ -16,8 +16,8 @@
  */
 
 
-#ifndef GDT_H
-#define GDT_H
+#ifndef INFINITY_GDT_H
+#define INFINITY_GDT_H
 
 #include <stdint.h>
 

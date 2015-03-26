@@ -18,26 +18,38 @@
 /*
  * time.c
  * Implements several methods found in time.h
- * Note: the implemention of time() is found in
+ * Note: the implementation of time() is found in
  * hardware/rtc.c
  */
 
 #include <stdint.h>
 #include <stddef.h>
+#include <infinity/heap.h>
 #include <infinity/types.h>
 #include <infinity/time.h>
 
-
+/*
+ * Returns a time struct that MUST be freed manually!
+ * @param timep		The UNIX time
+ */
 struct tm *gmtime(const time_t *timep)
 {
+    struct tm *ret = (struct tm*)kalloc(sizeof(struct tm*));
+    gmtime_r(timep, ret);
+    return ret;
 }
 
+/*
+ * Will write a time struct from a given UNIX time into buf
+ * @param timep		The UNIX time
+ * @param buf		The buffer to read into
+ */
 struct tm *gmtime_r(const time_t *timep, struct tm *buf)
 {
-	time_t t = time(NULL);
+    time_t t = time(NULL);
 
-	buf->tm_hour = (t / 3600) % 24;
-	buf->tm_min = (t / 60) % 60;
-	buf->tm_sec = t % 60;
-	return buf;
+    buf->tm_hour = (t / 3600) % 24;
+    buf->tm_min = (t / 60) % 60;
+    buf->tm_sec = t % 60;
+    return buf;
 }

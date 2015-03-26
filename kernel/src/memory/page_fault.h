@@ -16,12 +16,12 @@
  */
 
 
-#ifndef PAGE_FAULT_H
-#define PAGE_FAULT_H
+#ifndef MEMORY_PAGE_FAULT_H
+#define MEMORY_PAGE_FAULT_H
 
 #include <stdint.h>
 #include <infinity/interrupt.h>
 
-extern void page_fault_handler(struct regs* regs);
+void page_fault_handler(struct regs *regs);
 
 #endif

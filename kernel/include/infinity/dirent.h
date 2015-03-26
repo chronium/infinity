@@ -16,8 +16,8 @@
  */
 
 
-#ifndef DIRENT_H
-#define DIRENT_H
+#ifndef INFINITY_DIRENT_H
+#define INFINITY_DIRENT_H
 
 #include <infinity/types.h>
 
@@ -25,13 +25,12 @@ typedef struct {
     int 				dd_fd;
     int 				dd_loc;	
     int 				dd_seek;
-    char* 				dd_buf;
+    char				*dd_buf;
     int 				dd_len;
     int 				dd_size; 
 } DIR;
 
-struct dirent
-{   
+struct dirent {   
 	ino_t 				d_ino;
 	off_t 				d_off;
 	unsigned short int 	d_reclen;
@@ -39,7 +38,8 @@ struct dirent
 	char 				d_name[256];
 };
 
-DIR* opendir(const char *name);
-DIR* fdopendir(int fd);
-struct dirent* readdir(DIR* dir);
+DIR *opendir(const char *name);
+DIR *fdopendir(int fd);
+struct dirent *readdir(DIR* dir);
+
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,62 +14,70 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
-#include <stdint.h>
+ 
+/*
+ * kmain.c
+ * Kernel entry point and initialization
+ */
+  
 #include <mboot.h>
+#include <stdint.h>
+#include <infinity/elf32.h>
+#include <infinity/fcntl.h>
+#include <infinity/kernel.h>
+#include <infinity/heap.h>
+#include <infinity/paging.h>
+#include <infinity/virtfs.h>
 #include <infinity/idt.h>
 #include <infinity/gdt.h>
-#include <infinity/interrupt.h>
-#include <infinity/device.h>
-#include <infinity/kheap.h>
-#include <infinity/paging.h>
-#include <infinity/textscreen.h>
-#include <infinity/types.h>
-#include <infinity/fs/ifs.h>
-#include <infinity/stat.h>
-#include <infinity/dirent.h>
-#include <infinity/time.h>
-#include <infinity/ringbuffer.h>
+#include <infinity/sched.h>
+#include <infinity/sync.h>
+#include <infinity/module.h>
+#include <infinity/drivers/pit.h>
+#include <infinity/drivers/textscreen.h>
+#include <infinity/drivers/serial.h>
 
-extern struct device textscreen_device;
+static void kthread_main();
 
-static void run_init();
-static void cpu_idle();
-
+/*
+ * Start of kernel execution, we are transferred here
+ * from boot.asm
+ */
 void kmain(multiboot_info_t *mbootinfo)
 {
+	void *heap_start = *(uint32_t*)(mbootinfo->mods_addr + 4);
+	void *module_start = *(uint32_t*)(mbootinfo->mods_addr);
 	
-	init_kheap(*(uint32_t *)(mbootinfo->mods_addr + 4));
-	klog(1);
-	init_textscreen();
-	init_gdt();
-	init_idt();
-	init_paging();
-	init_sched();
-	mount_initrd((void *)*((uint32_t *)mbootinfo->mods_addr));
-	void *test = kalloc(10);
-	void *test2 = kalloc(10);
-	void *test3 = kalloc(100);
-	kfree(test);
-	kfree(test2);
-	kfree(test3);
-	printk("Hello, World!\n");
-	while(1);
-	run_init();
+    init_kheap(heap_start);
+    init_textscreen();
+    init_serial();
+    klog(1);
+    klog_output(serial_dev1);
+    init_ramdisk(module_start, 0);
+    parse_symbol_file();
+    init_gdt();
+    init_idt();
+    init_devfs();
+    init_pit(50);
+   // init_paging();
+    init_sched();
+    
+    thread_create(kthread_main, NULL);
+    
+    while(1); // Wait for the scheduler to take over 
 }
 
-static void run_init()
+/*
+ * Entry point for the kernel thread (Once we have the
+ * schedular enabled)
+ */
+static void kthread_main()
 {
-	pid_t pid = fork();
-
-	if (pid)
-		panic("could not start init");
-	else
-		cpu_idle();
-}
-
-static void cpu_idle()
-{
-	while (1)
-		asm ("hlt");
+	struct file *test = fopen("/hello.txt", O_RDWR);
+	
+	
+	printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
+	init_boot_modules();
+	printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
+	while(1) asm("hlt"); // We are done. Stay here
 }

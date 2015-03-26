@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,45 +14,115 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
+ 
 /*
  * module.c
- * Provides methods for loading kernel modules
+ * Provides functions loading and unloading kernel modules
  */
+  
 
 #include <stddef.h>
-#include <infinity/device.h>
+#include <infinity/heap.h>
+#include <infinity/kernel.h>
+#include <infinity/elf32.h>
+#include <infinity/virtfs.h>
+#include <infinity/fcntl.h>
 #include <infinity/module.h>
 
-struct module *kmodule_list = NULL;
+static struct module *module_list = NULL;
+
+static void add_module(struct module *mod);
 
 /*
- * Inserts a kernel module, returns 0 if success
- * @param mod	The module to insert
+ * Loads a module and returns a struct module
+ * Note, the module will not be initialized
+ * @param path			The path to the kernel module
  */
-int insert_module(struct module *mod)
+struct module *load_module(const char *path)
 {
-	if (mod->mod_magic == MODULE_MAGIC) {
-		mod->next_module = NULL;
-		if (kmodule_list) {
-			struct module *curr = kmodule_list;
-			while (curr->next_module)
-				curr = curr->next_module;
-			curr->next_module = mod;
-		} else {
-			kmodule_list = mod;
+	printk(KERN_INFO "INFO: Loading kernel module '%s'\n", path);
+	void *exe = elf_open(path);
+	if(exe) {
+		struct module *mod = (struct module*)kalloc(sizeof(struct module));
+		mod->mod_init = elf_sym(exe, "mod_init");
+		mod->mod_uninit = elf_sym(exe, "mod_uninit");
+		
+		if(mod->mod_init == NULL || mod->mod_uninit == NULL) {
+			printk(KERN_ERR "ERROR: Kernel module missing mod_init or mod_uninit, invalid kernel module! (File: %s)\n", path);
+			return NULL;
 		}
-		return 0;
+		return mod;
+		
 	} else {
-		return -1;
+		return NULL;
 	}
 }
 
 /*
- * Unitializes a kernel module
- * @param mod	The module to initialize
+ * Inserts a kernel module into the linked list of
+ * active modules and initializes it
+ * @param mod			The module to initialize
  */
-int init_module(struct module *mod)
+void insert_mod(struct module *mod)
 {
-	return mod->mod_init();
+	add_module(mod);
+	
+	int res = mod->mod_init();
+	if(res) {
+		printk(KERN_ERR "ERROR: Failed to initialize module %s, mod_init() returned %d\n", mod->mod_name, res);
+	} else {
+		printk(KERN_INFO "DEBUG: Returned %d\n", res);
+	}
+}
+
+void unload_mod(struct module *mod)
+{
+	
+}
+
+/*
+ * Loads all modules needed to boot infinity
+ */
+void init_boot_modules()
+{
+	struct file *f = fopen("/lib/infinity/modules", O_RDONLY);
+	if(f) {
+
+		struct dirent entry;
+		int i = 0;
+		while(virtfs_readdir(f, i, &entry) == 0) {
+			char file_name[256];
+			memset(file_name, 0, 256);
+			strcat(file_name, "/lib/infinity/modules/");
+			strcat(file_name, entry.d_name);
+			
+			struct module *mod = load_module(file_name);
+			if(mod) {
+				insert_mod(mod);
+			} else {
+				printk(KERN_ERR "ERROR: Could not load module %s\n", entry.d_name);
+			}
+			i++;
+		}
+		
+		fclose(f);
+	} else {
+		printk(KERN_WARN "WARNING: Could not open up /lib/infinity/modules! Booting NO kernel modules!\n");
+	}
+}
+
+/*
+ * Adds a module to the linked list
+ */
+static void add_module(struct module *mod)
+{
+	if(module_list) {
+		struct module *i = module_list;
+		while(i->next) {
+			i = i->next;
+		}
+		i->next = mod;
+	} else {
+		module_list = mod;
+	}
 }

@@ -15,8 +15,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef STAT_H
-#define STAT_H
+#ifndef INFINITY_STAT_H
+#define INFINITY_STAT_H
 
 #include <infinity/types.h>
 
@@ -34,6 +34,6 @@ struct stat {
   unsigned int 			st_ctime;
 };
 
-int fstat(int fd, struct stat* buf);
+int fstat(int fd, struct stat *buf);
 
 #endif

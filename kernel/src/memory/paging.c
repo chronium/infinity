@@ -25,10 +25,10 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <infinity/kheap.h>
+#include <infinity/heap.h>
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
-#include "page_fault.h"
+//#include "page_fault.h"
 
 #define IDENTITY_MAP_END                0x1E84800
 
@@ -96,7 +96,7 @@ struct page_directory *create_new_page_directory()
  */
 void init_paging()
 {
-	request_isr(14, page_fault_handler);
+	//request_isr(14, page_fault_handler);
 
 	kernel_directory = (struct page_directory *)malloc_pa(sizeof(struct page_directory));
 	memset(kernel_directory, 0, sizeof(struct page_directory));

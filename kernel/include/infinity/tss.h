@@ -1,5 +1,5 @@
-#ifndef TSS_H
-#define TSS_H
+#ifndef INFINITY_TSS_H
+#define INFINITY_TSS_H
 
 #include <stdint.h>
 
