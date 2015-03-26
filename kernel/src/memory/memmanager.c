@@ -37,7 +37,7 @@ static struct page_frame *pop_free_frame();
 
 /*
  * Allocates a frame at a specified virtual address
- * and sets the flags. 
+ * and sets the flags.
  * @param vaddr		The address in virtual memory
  * @param flags		Page frame flags
  */

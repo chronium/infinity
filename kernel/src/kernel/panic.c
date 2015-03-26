@@ -41,9 +41,9 @@ void panic(const char *format, ...)
 	klog(0); // Disable the kernel log because the heap could be corrupt
 
 	char msg_buff[512];
-	
+
 	memset(msg_buff, 0, 512);
-	
+
 	va_list argp;
 	va_start(argp, format);
 	vsprintf(msg_buff, format, argp);
@@ -53,7 +53,6 @@ void panic(const char *format, ...)
 	printk(KERN_EMERG "The system is HALTED!\n");
 
 
-	while (1) {
-		asm("hlt");
-	}
+	while (1)
+		asm ("hlt");
 }

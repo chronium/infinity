@@ -14,12 +14,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 /*
  * open.c
  * Provides functions for creating file streams ontop of the virtual filesystem
  */
-  
+
 #include <stddef.h>
 #include <infinity/kernel.h>
 #include <infinity/dirent.h>
@@ -37,20 +37,20 @@ static int remove_from_file_table(struct file *file);
  * @param path			The path to the file
  * @param oflags		Flags to open the file with
  */
-struct file *fopen(const char *path, int oflags) 
+struct file *fopen(const char *path, int oflags)
 {
 	printk(KERN_INFO "DEBUG: Open %s\n", path);
-	struct file *new_file = (struct file*)kalloc(sizeof(struct file));
+	struct file *new_file = (struct file *)kalloc(sizeof(struct file));
 	memset(new_file, 0, sizeof(struct file));
 	int res = virtfs_open(new_file, path, oflags);
-	if(res == 0) {
+	if (res == 0) {
 		add_to_file_table(new_file);
 		return new_file;
 	}
 	printk(KERN_ERR "ERROR: virtfs_open() failed!\n");
-	
+
 	kfree(new_file);
-	
+
 	return NULL;
 }
 
@@ -69,14 +69,15 @@ int fclose(struct file *f)
  */
 static void add_to_file_table(struct file *nfile)
 {
-	struct file_table_entry *entry = (struct file_table_entry*)kalloc(sizeof(struct file_table_entry));
+	struct file_table_entry *entry = (struct file_table_entry *)kalloc(sizeof(struct file_table_entry));
+
 	entry->next = NULL;
 	entry->file_entry = nfile;
-	if(!file_table) {
+	if (!file_table) {
 		file_table = entry;
 	} else {
 		struct file_table_entry *i = file_table;
-		while(i->next)
+		while (i->next)
 			i = i->next;
 		i->next = entry;
 	}
@@ -89,11 +90,10 @@ static int remove_from_file_table(struct file *file)
 {
 	struct file_table_entry *i = file_table;
 	struct file_table_entry *last = NULL;
-	
-	while(i) {
-		
-		if(i->file_entry == file) {
-			if(last)
+
+	while (i) {
+		if (i->file_entry == file) {
+			if (last)
 				last->next = i->next;
 			else
 				file_table = i->next;
@@ -101,7 +101,7 @@ static int remove_from_file_table(struct file *file)
 			kfree(i);
 			return 0;
 		}
-		
+
 		last = i;
 		i = i->next;
 	}

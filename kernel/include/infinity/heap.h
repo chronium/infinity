@@ -23,9 +23,9 @@
 #include <stdint.h>
 
 struct mblock {
-    void* 				memory;
-    size_t 				size;
-    void* 				next_block;
+	void *	memory;
+	size_t	size;
+	void *	next_block;
 };
 
 extern void init_kheap(uint32_t i);

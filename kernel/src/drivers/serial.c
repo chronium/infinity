@@ -14,17 +14,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 /*
  * serial.c
  * Driver for communicating with serial devices
  */
- 
+
 #include <stddef.h>
 #include <infinity/device.h>
 #include <infinity/drivers/serial.h>
 
-#define COM_PORT			0x3F8
+#define COM_PORT                        0x3F8
 
 struct device *serial_dev1 = NULL;
 static struct device *serial_dev2 = NULL;
@@ -39,14 +39,14 @@ void init_serial()
 {
 	serial_dev1 = device_create(CHAR_DEVICE, "ttyS0");
 	serial_dev1->write = serial_write_com1;
-	
+
 	outb(COM_PORT + 1, 0x00);
 	outb(COM_PORT + 3, 0x80);
 	outb(COM_PORT + 0, 0x03);
 	outb(COM_PORT + 1, 0x00);
 	outb(COM_PORT + 3, 0x03);
 	outb(COM_PORT + 2, 0xC7);
-	outb(COM_PORT + 4, 0x0B); 
+	outb(COM_PORT + 4, 0x0B);
 }
 
 /*
@@ -54,7 +54,7 @@ void init_serial()
  */
 static size_t serial_write_com1(void *tag, const char *data, size_t s, uint32_t add)
 {
-	for(int i = 0; i < s; i++)
+	for (int i = 0; i < s; i++)
 		serial_putc(data[i]);
 	return s;
 }
@@ -64,7 +64,7 @@ static size_t serial_write_com1(void *tag, const char *data, size_t s, uint32_t 
  */
 static void serial_putc(char c)
 {
-	while(!serial_is_empty());
+	while (!serial_is_empty());
 	outb(COM_PORT, c);
 }
 

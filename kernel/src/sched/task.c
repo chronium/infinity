@@ -14,12 +14,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 /*
  * task.c
  * Provides functions for scheduling tasks
  */
-  
+
 #include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/sched.h>
@@ -29,11 +29,11 @@ struct task *task_list = NULL;
 /*
  * Schedules a task, it will be executed on
  * the next PIT tick. After that, the task will
- * need to be re-scheduled if it is to be used again. 
+ * need to be re-scheduled if it is to be used again.
  */
 void schedule_task(struct task *task)
 {
-	if(task_list == NULL) {
+	if (task_list == NULL) {
 		task_list = task;
 		task->next = NULL;
 	} else {
@@ -43,12 +43,12 @@ void schedule_task(struct task *task)
 }
 
 /*
- * Executes and deqeues the last task in 
+ * Executes and deqeues the last task in
  * the queue
  */
 void dequeue_next_task()
 {
-	if(task_list) {
+	if (task_list) {
 		struct task *cur = task_list;
 		cur->task_handler(cur->data);
 		task_list = cur->next;

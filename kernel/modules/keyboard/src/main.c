@@ -3,7 +3,6 @@
 
 int mod_init()
 {
-	
 	return 0;
 }
 

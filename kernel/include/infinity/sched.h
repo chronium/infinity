@@ -6,29 +6,29 @@
 #include <infinity/interrupt.h>
 #include <infinity/virtfs.h>
 
-#define BEGIN_CRITICAL_REGION	asm("cli"); 
-#define END_CRITICAL_REGION		asm("sti"); 
+#define BEGIN_CRITICAL_REGION   asm ("cli");
+#define END_CRITICAL_REGION             asm ("sti");
 
 struct process {
-	char					p_name[64];
-	pid_t					p_id;
-	uid_t					p_uid;
-	gid_t					p_gid;
-	struct fildes			*p_file_descriptor_table;
-	struct process			*next;
+	char		p_name[64];
+	pid_t		p_id;
+	uid_t		p_uid;
+	gid_t		p_gid;
+	struct fildes * p_file_descriptor_table;
+	struct process *next;
 };
 
 struct thread {
-	pid_t					t_id;
-	struct regs				*t_regs;
-	struct process			*t_proc;
-	struct thread			*next;
+	pid_t		t_id;
+	struct regs *	t_regs;
+	struct process *t_proc;
+	struct thread * next;
 };
 
 struct task {
-	void (*task_handler)		(void *data);
-	void						*data;
-	struct task					*next;
+	void		(*task_handler)            (void *data);
+	void *		data;
+	struct task *	next;
 };
 
 extern struct process *current_proc;

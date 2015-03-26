@@ -67,6 +67,6 @@ void handle_irq(struct regs *registers)
 		outb(0xA0, 0x20);
 	if (irq_handlers[i - 32])
 		irq_handlers[i - 32](registers);
-		
+
 	outb(0x20, 0x20);
 }

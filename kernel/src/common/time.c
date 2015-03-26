@@ -34,9 +34,10 @@
  */
 struct tm *gmtime(const time_t *timep)
 {
-    struct tm *ret = (struct tm*)kalloc(sizeof(struct tm*));
-    gmtime_r(timep, ret);
-    return ret;
+	struct tm *ret = (struct tm *)kalloc(sizeof(struct tm *));
+
+	gmtime_r(timep, ret);
+	return ret;
 }
 
 /*
@@ -46,10 +47,10 @@ struct tm *gmtime(const time_t *timep)
  */
 struct tm *gmtime_r(const time_t *timep, struct tm *buf)
 {
-    time_t t = time(NULL);
+	time_t t = time(NULL);
 
-    buf->tm_hour = (t / 3600) % 24;
-    buf->tm_min = (t / 60) % 60;
-    buf->tm_sec = t % 60;
-    return buf;
+	buf->tm_hour = (t / 3600) % 24;
+	buf->tm_min = (t / 60) % 60;
+	buf->tm_sec = t % 60;
+	return buf;
 }

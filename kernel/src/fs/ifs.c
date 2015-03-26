@@ -58,25 +58,23 @@ void register_ifs()
 
 static int ifs_mount(struct device *dev)
 {
-	
 	struct ifs_volume_hdr hdr;
 
 
 	device_read(dev, &hdr, 0, sizeof(struct ifs_volume_hdr));
 
 	/*
-	* Yes Courtney, even though you completely fucked me over
-	* in just about every respect, I immortalized you in the IFS
-	* magic number. Not that you will ever see this. Maybe because
-	* I still love you, maybe because, well I have no fucking clue....
-	*
-	* Magic number: 0xCB0A0D0D (Big endian)
-	*/
-	if(hdr.mag0 != 0xCB || hdr.mag1 != 0x0A || hdr.mag2 != 0x0D || hdr.mag3 != 0x0D)
+	 * Yes Courtney, even though you completely fucked me over
+	 * in just about every respect, I immortalized you in the IFS
+	 * magic number. Not that you will ever see this. Maybe because
+	 * I still love you, maybe because, well I have no fucking clue....
+	 *
+	 * Magic number: 0xCB0A0D0D (Big endian)
+	 */
+	if (hdr.mag0 != 0xCB || hdr.mag1 != 0x0A || hdr.mag2 != 0x0D || hdr.mag3 != 0x0D)
 		return -1;
-		
+
 	return 1;
-	 
 }
 
 /*
@@ -95,7 +93,8 @@ static inline int contains(const char *str, char c)
 static inline int ifs_get_parent(struct device *dev, const char *path)
 {
 	int parent = 0;
-	if(contains(path, '/')) {
+
+	if (contains(path, '/')) {
 		char tmp[256];
 		strcpy(tmp, path);
 		*strrchr(tmp, '/') = 0;
@@ -112,12 +111,12 @@ static int ifs_block_alloc(struct device *dev, int size)
 {
 	struct ifs_block blk;
 	struct ifs_volume_hdr hdr;
+
 	device_read(dev, &hdr, 0, sizeof(struct ifs_volume_hdr));
-	
-	for(int i = 0; i < hdr.block_pool_size; i += sizeof(struct ifs_block))
-	{
+
+	for (int i = 0; i < hdr.block_pool_size; i += sizeof(struct ifs_block)) {
 		device_read(dev, &blk, sizeof(struct ifs_volume_hdr) + i, sizeof(struct ifs_block));
-		if((blk.state == IFS_BLOCK_FREE && blk.size == size) || blk.state == IFS_BLOCK_NONEXISTENT) {
+		if ((blk.state == IFS_BLOCK_FREE && blk.size == size) || blk.state == IFS_BLOCK_NONEXISTENT) {
 			blk.size = size;
 			blk.state = IFS_BLOCK_ALLOCATED;
 			blk.data = hdr.placement_new;
@@ -140,6 +139,7 @@ static void ifs_write_block(struct device *dev, int index, struct ifs_block *blo
 static int ifs_fstat(struct device *dev, ino_t ino, struct stat *stat_struct)
 {
 	struct ifs_entry entry;
+
 	device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
 	stat_struct->st_mode = entry.umask;
 	stat_struct->st_ctime = entry.created_time;
@@ -181,22 +181,22 @@ static size_t ifs_write_file(struct device *dev, ino_t ino, char *buff, off_t ad
 	device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
 	int offset = addr - ((addr / vol_header.file_block_size) * vol_header.file_block_size);
 	int bytes_written = 0;
-	
+
 	int blocks = (entry.file_size + entry.file_size % vol_header.file_block_size) / vol_header.file_block_size;
 	int blocks_needed = (entry.file_size + entry.file_size % vol_header.file_block_size) / vol_header.file_block_size;
 	int delta = blocks_needed > blocks ? blocks_needed - blocks : 0;
 	struct ifs_block last;
 	int lastp = ifs_get_last_block(dev, entry.data_index);
 	ifs_get_block(dev, lastp, &last);
-	
-	for(int i = 0; i < delta; i++) {
+
+	for (int i = 0; i < delta; i++) {
 		struct ifs_block prev;
 		int nb = ifs_block_alloc(dev, vol_header.file_block_size);
 		last.next = nb;
 		ifs_write_block(dev, lastp, &last);
 		lastp = nb;
 	}
-	
+
 	for (int i = 0; i < len && i < entry.file_size; i += vol_header.file_block_size) {
 		int block = len / vol_header.file_block_size;
 		int rlen = len - i;
@@ -204,14 +204,14 @@ static size_t ifs_write_file(struct device *dev, ino_t ino, char *buff, off_t ad
 		offset = 0;
 		bytes_written += rlen;
 	}
-	
+
 	entry.file_size = addr + bytes_written;
 	device_write(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
 	return bytes_written;
 }
 
 /*
- * Blocks containing file data form a linked list (There is no guarantee that the 
+ * Blocks containing file data form a linked list (There is no guarantee that the
  * file data is all together, so this function will return a block index for a
  * offset inside a file
  */
@@ -233,11 +233,11 @@ static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *den
 {
 	printk(KERN_INFO "[DEBUG] Read dir (ino: %d)\n", ino);
 	struct ifs_entry entry;
-	int32_t *directory = (int32_t*)kalloc(1024);
+	int32_t *directory = (int32_t *)kalloc(1024);
 
 	device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
 	device_read(dev, directory, ifs_get_address(dev, entry.data_index), 1024);
-	
+
 	printk(KERN_INFO "[DEBUG] Dirent is %d\n", directory[d]);
 	if (directory[d] == -1)
 		return -1;
@@ -261,11 +261,12 @@ static int ifs_get_last_block(struct device *dev, int start)
 {
 	struct ifs_block block;
 	int ret = start;
+
 	ifs_get_block(dev, start, &block);
 	do {
 		ret = block.next;
 		ifs_get_block(dev, block.next, &block);
-	} while(block.next != 0);
+	} while (block.next != 0);
 	return ret;
 }
 
@@ -276,6 +277,7 @@ static int ifs_get_last_block(struct device *dev, int start)
 static int ifs_get_address(struct device *dev, int index)
 {
 	struct ifs_block block;
+
 	ifs_get_block(dev, index, &block);
 	return block.data;
 }
@@ -297,13 +299,13 @@ static int ifs_get_directory(struct device *dev, int parent, char *dir)
 	device_read(dev, &dentry, ifs_get_address(dev, parent), sizeof(struct ifs_entry));
 	int dtable = dentry.data_index;
 	device_read(dev, directory, ifs_get_address(dev, dtable), 1024);
-	
+
 	for (int i = 0; i < 256 && directory[i] != -1; i++) {
 		int e = directory[i];
 		struct ifs_entry entry;
 		device_read(dev, &entry, ifs_get_address(dev, e), sizeof(struct ifs_entry));
 		printk(KERN_INFO "Entry %s %d\n", entry.file_name, e);
-		
+
 		if (has_sep && strncmp(dir, entry.file_name, strindx(dir, '/')) == 0) {
 			kfree(directory);
 			return ifs_get_directory(dev, e, strrchr(dir, '/') + 1);
@@ -338,34 +340,34 @@ static int ifs_mkdir(struct device *dev, const char *path)
 {
 	int ent = ifs_block_alloc(dev, sizeof(struct ifs_entry));
 	int table = ifs_block_alloc(dev, 1024);
-	
-	if(ent == -1 || table == -1) {
+
+	if (ent == -1 || table == -1) {
 		printk(KERN_ERR "ERROR ifs_mkdir() failed! Could not allocate block! Disk full or corrupt!\n");
 		return -1;
 	}
-	
+
 	struct ifs_entry dir;
 	dir.umask = 484;
 	dir.block_index = ent;
-	
-	if(contains(path, '/'))
+
+	if (contains(path, '/'))
 		strcpy(dir.file_name, strrchr(path, '/') + 1);
 	else
 		strcpy(dir.file_name, path);
-		
+
 	int parent = ifs_get_parent(dev, path);
-	
+
 	int32_t *directory = (int32_t *)kalloc(1024);
 	struct ifs_entry dentry;
 	device_read(dev, directory, ifs_get_address(dev, parent), 1024);
-	
+
 	int pos;
-	for(pos = 0; pos < 256 && directory[pos] != -1; pos++);
-	
+	for (pos = 0; pos < 256 && directory[pos] != -1; pos++);
+
 	directory[pos] = ent;
-	
+
 	device_write(dev, directory, ifs_get_address(dev, parent), 1024);
 	device_write(dev, &dir, ifs_get_address(dev, ent), sizeof(struct ifs_entry));
-	
+
 	kfree(directory);
 }

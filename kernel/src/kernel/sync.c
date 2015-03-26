@@ -29,7 +29,7 @@
 void spin_lock(spinlock_t *lock)
 {
 	while (*lock)
-		asm("pause");
+		asm ("pause");
 	__sync_lock_test_and_set(lock, 1);
 }
 
@@ -39,7 +39,7 @@ void spin_lock(spinlock_t *lock)
  */
 void spin_unlock(spinlock_t *lock)
 {
-	asm volatile("": : :"memory");
+	asm volatile ("" : : : "memory");
 	__sync_lock_release(lock, 0);
 }
 
@@ -49,8 +49,8 @@ void spin_unlock(spinlock_t *lock)
  */
 void mutex_lock(mutex_t *lock)
 {
-    while (*lock) asm ("hlt");
-    *lock = 1;
+	while (*lock) asm ("hlt");
+	*lock = 1;
 }
 
 /*
@@ -59,5 +59,5 @@ void mutex_lock(mutex_t *lock)
  */
 void mutex_unlock(mutex_t *lock)
 {
-    *lock = 0;
+	*lock = 0;
 }

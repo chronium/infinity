@@ -14,13 +14,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 /*
  * ramdisk.c
  * Provides functions for interacting with the initial RAM disk
  * and creating the initrd device
  */
-  
+
 #include <infinity/common.h>
 #include <infinity/device.h>
 #include <infinity/virtfs.h>
@@ -41,14 +41,14 @@ static size_t ramdisk_read(void *tag, void *buff, int off, size_t size);
  * @param memory		The address in RAM where the initrd starts
  * @param size			The size of the initrd
  */
-void init_ramdisk(void *memory, int size) 
+void init_ramdisk(void *memory, int size)
 {
 	printk(KERN_DEBUG "DEBUG: Preparing to create initrd (Start %x)\n", memory);
 	ramdisk_dev = device_create(BLOCK_DEVICE, "ramdisk");
 	ramdisk_dev->read = ramdisk_read;
 	ramdisk_dev->write = ramdisk_write;
 	initrd_ptr = memory;
-	
+
 	register_ifs();
 	virtfs_init(ramdisk_dev, &ifs_filesystem);
 }

@@ -37,17 +37,18 @@ static int next_devid = 0; // Unique identifier for devices
  */
 struct device *device_create(devtype_t type, const char *name)
 {
-    struct device *new_dev = (struct device*)kalloc(sizeof(struct device)); // Create a new device
-    new_dev->dev_name = name;
-    new_dev->dev_type = type;
-    new_dev->next = NULL;
-	new_dev->dev_id = next_devid++;
-    struct device *i = device_list;
+	struct device *new_dev = (struct device *)kalloc(sizeof(struct device));// Create a new device
 
-    if(!device_list) {
-        device_list = new_dev;
-        return device_list;
-    } else {
+	new_dev->dev_name = name;
+	new_dev->dev_type = type;
+	new_dev->next = NULL;
+	new_dev->dev_id = next_devid++;
+	struct device *i = device_list;
+
+	if (!device_list) {
+		device_list = new_dev;
+		return device_list;
+	} else {
 		while (i->next)
 			i = i->next;
 		i->next = new_dev;

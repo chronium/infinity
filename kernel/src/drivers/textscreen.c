@@ -14,12 +14,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 /*
  * textscreen.c
  * Driver for hardware VGA text screen
  */
- 
+
 #include <infinity/heap.h>
 #include <infinity/common.h>
 #include <infinity/device.h>
@@ -28,7 +28,7 @@
 
 
 /*
- * We will make this device available to outside 
+ * We will make this device available to outside
  * parties
  */
 struct device *hardware_textscreen;
@@ -51,10 +51,10 @@ static size_t textscreen_write(void *tag, const char *data, size_t s, uint32_t a
  */
 void init_textscreen()
 {
-    hardware_textscreen = device_create(CHAR_DEVICE, "hwcon");
-    hardware_textscreen->write = textscreen_write;
-    klog_output(hardware_textscreen);
-    clrscr();
+	hardware_textscreen = device_create(CHAR_DEVICE, "hwcon");
+	hardware_textscreen->write = textscreen_write;
+	klog_output(hardware_textscreen);
+	clrscr();
 }
 
 
@@ -73,11 +73,11 @@ void clrscr()
  */
 static void textscreen_newline()
 {
-    if (terminal_pos % 80 == 0) {
-        terminal_pos += 80;
-        return;
-    }
-    while (terminal_pos % 80) terminal_pos++;
+	if (terminal_pos % 80 == 0) {
+		terminal_pos += 80;
+		return;
+	}
+	while (terminal_pos % 80) terminal_pos++;
 }
 
 /*
@@ -85,12 +85,12 @@ static void textscreen_newline()
  */
 static void textscreen_scroll()
 {
-    memcpy(video_memory, video_memory + 80, (80 * 25) - 80);
-    for (int i = 80; i < (80 * 25); i++)
-        video_memory[i - 80] = video_memory[i];
-    for (int i = 0; i < 80; i++)
-        video_memory[((80 * 25) - 80) + i] = 0;
-    terminal_pos = (80 * 25) - 80;
+	memcpy(video_memory, video_memory + 80, (80 * 25) - 80);
+	for (int i = 80; i < (80 * 25); i++)
+		video_memory[i - 80] = video_memory[i];
+	for (int i = 0; i < 80; i++)
+		video_memory[((80 * 25) - 80) + i] = 0;
+	terminal_pos = (80 * 25) - 80;
 }
 
 /*
@@ -99,18 +99,18 @@ static void textscreen_scroll()
  */
 static void textscreen_putc(const char c)
 {
-    if (c == '\n') {
-        textscreen_newline();
-    } else if (c == '\b') {
-        terminal_pos--;
-        textscreen_putc(' ');
-        terminal_pos--;
-    } else {
-        if (terminal_pos >= 2000)
-            textscreen_scroll();
-        int attr = (((background_color) << 4) | (foreground_color & 0x0F)) << 8;
-        video_memory[terminal_pos++] = c | attr;
-    }
+	if (c == '\n') {
+		textscreen_newline();
+	} else if (c == '\b') {
+		terminal_pos--;
+		textscreen_putc(' ');
+		terminal_pos--;
+	} else {
+		if (terminal_pos >= 2000)
+			textscreen_scroll();
+		int attr = (((background_color) << 4) | (foreground_color & 0x0F)) << 8;
+		video_memory[terminal_pos++] = c | attr;
+	}
 }
 
 /*
@@ -118,8 +118,7 @@ static void textscreen_putc(const char c)
  */
 static size_t textscreen_write(void *tag, const char *data, size_t s, uint32_t add)
 {
-    for (int i = 0; i < s; i++)
-        textscreen_putc(data[i]);
-    return s;
+	for (int i = 0; i < s; i++)
+		textscreen_putc(data[i]);
+	return s;
 }
-

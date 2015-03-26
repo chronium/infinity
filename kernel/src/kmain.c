@@ -14,12 +14,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 /*
  * kmain.c
  * Kernel entry point and initialization
  */
-  
+
 #include <mboot.h>
 #include <stdint.h>
 #include <infinity/elf32.h>
@@ -45,26 +45,26 @@ static void kthread_main();
  */
 void kmain(multiboot_info_t *mbootinfo)
 {
-	void *heap_start = *(uint32_t*)(mbootinfo->mods_addr + 4);
-	void *module_start = *(uint32_t*)(mbootinfo->mods_addr);
-	
-    init_kheap(heap_start);
-    init_textscreen();
-    init_serial();
-    klog(1);
-    klog_output(serial_dev1);
-    init_ramdisk(module_start, 0);
-    parse_symbol_file();
-    init_gdt();
-    init_idt();
-    init_devfs();
-    init_pit(50);
-   // init_paging();
-    init_sched();
-    
-    thread_create(kthread_main, NULL);
-    
-    while(1); // Wait for the scheduler to take over 
+	void *heap_start = *(uint32_t *)(mbootinfo->mods_addr + 4);
+	void *module_start = *(uint32_t *)(mbootinfo->mods_addr);
+
+	init_kheap(heap_start);
+	init_textscreen();
+	init_serial();
+	klog(1);
+	klog_output(serial_dev1);
+	init_ramdisk(module_start, 0);
+	parse_symbol_file();
+	init_gdt();
+	init_idt();
+	init_devfs();
+	init_pit(50);
+	// init_paging();
+	init_sched();
+
+	thread_create(kthread_main, NULL);
+
+	while (1) ; // Wait for the scheduler to take over
 }
 
 /*
@@ -74,10 +74,10 @@ void kmain(multiboot_info_t *mbootinfo)
 static void kthread_main()
 {
 	struct file *test = fopen("/hello.txt", O_RDWR);
-	
-	
+
+
 	printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
 	init_boot_modules();
 	printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
-	while(1) asm("hlt"); // We are done. Stay here
+	while (1) asm ("hlt"); // We are done. Stay here
 }

@@ -45,9 +45,9 @@ static struct mblock *kheap_get_block(size_t size);
  */
 void init_kheap(uint32_t i)
 {
-    free_address = ((int)i % 8) + i;
-    free_top = NULL;
-    used_top = NULL;
+	free_address = ((int)i % 8) + i;
+	free_top = NULL;
+	used_top = NULL;
 }
 
 /*
@@ -58,46 +58,47 @@ void init_kheap(uint32_t i)
  */
 void *kalloc(size_t size)
 {
-    struct mblock *new_mb = kheap_get_block(size);
-    if(!new_mb) {
-        new_mb = kheap_alloc(sizeof(struct mblock));
-        new_mb->memory = kheap_alloc(size);
-        new_mb->size = size;
-    }
+	struct mblock *new_mb = kheap_get_block(size);
 
-    new_mb->next_block = used_top;
-    used_top = new_mb;
-    return new_mb->memory;
+	if (!new_mb) {
+		new_mb = kheap_alloc(sizeof(struct mblock));
+		new_mb->memory = kheap_alloc(size);
+		new_mb->size = size;
+	}
 
+	new_mb->next_block = used_top;
+	used_top = new_mb;
+	return new_mb->memory;
 }
 
 static void *kheap_alloc(size_t size)
 {
-    size_t sz_aligned = size + (size % 8) + 8;
+	size_t sz_aligned = size + (size % 8) + 8;
 
-    *((int*)free_address) = GUARD_1;
-    *((int*)(free_address + size + 4))= GUARD_2;
+	*((int *)free_address) = GUARD_1;
+	*((int *)(free_address + size + 4)) = GUARD_2;
 
-    free_address += sz_aligned;
-    return 4 + free_address - sz_aligned;
+	free_address += sz_aligned;
+	return 4 + free_address - sz_aligned;
 }
 
 static struct mblock *kheap_get_block(size_t size)
 {
-    struct mblock *i = free_top;
-    struct mblock *p = i;
-    while(i) {
-        if(i->size > size) {
-            if(p == i)
-                free_top = i->next_block;
-            else
-                p->next_block = i->next_block;
-            return i;
-        }
-        p = i;
-        i = i->next_block;
-    }
-    return NULL;
+	struct mblock *i = free_top;
+	struct mblock *p = i;
+
+	while (i) {
+		if (i->size > size) {
+			if (p == i)
+				free_top = i->next_block;
+			else
+				p->next_block = i->next_block;
+			return i;
+		}
+		p = i;
+		i = i->next_block;
+	}
+	return NULL;
 }
 /*
  * Reallocates an existing block of memory, with a new size
@@ -108,15 +109,17 @@ static struct mblock *kheap_get_block(size_t size)
  */
 void *realloc(void *ptr, size_t size)
 {
-    void *tmp = ptr;
-    size_t sz = ksize(tmp);
-    if(sz != 0) {
-        kfree(tmp);
-        void *rtn = kalloc(size);
-        memcpy(rtn, tmp, sz);
-        return rtn;
-    } else
-        return NULL;
+	void *tmp = ptr;
+	size_t sz = ksize(tmp);
+
+	if (sz != 0) {
+		kfree(tmp);
+		void *rtn = kalloc(size);
+		memcpy(rtn, tmp, sz);
+		return rtn;
+	} else {
+		return NULL;
+	}
 }
 
 /*
@@ -127,13 +130,13 @@ void *realloc(void *ptr, size_t size)
  */
 void *malloc_pa(size_t size)
 {
-    void *old_free = free_address;
+	void *old_free = free_address;
 
-    free_address = ((uint32_t)free_address & 0xFFFFF000) + 0x1000;
+	free_address = ((uint32_t)free_address & 0xFFFFF000) + 0x1000;
 
-    void *ret = free_address;
-    free_address += size;
-    return ret;
+	void *ret = free_address;
+	free_address += size;
+	return ret;
 }
 
 /*
@@ -142,26 +145,26 @@ void *malloc_pa(size_t size)
  */
 void kfree(void *ptr)
 {
-    struct mblock *i = used_top;
-    struct mblock *p = i;
-    while(i) {
-        if(i->memory == ptr) {
-            if (*((int*)(i->memory - 4)) != GUARD_1 || *((int*)(i->memory + i->size)) != GUARD_2)
-            {
+	struct mblock *i = used_top;
+	struct mblock *p = i;
+
+	while (i) {
+		if (i->memory == ptr) {
+			if (*((int *)(i->memory - 4)) != GUARD_1 || *((int *)(i->memory + i->size)) != GUARD_2) {
 				/* The heap has been corrupted! */
 				panic("heap corruption, corrupt block at %x (Guard 1: %p Guard 2:%p)", ptr,
-				*((int*)(i->memory - 4)), *((int*)(i->memory + i->size)));
+				      *((int *)(i->memory - 4)), *((int *)(i->memory + i->size)));
 			}
-            if(p == i)
-                used_top = i->next_block;
-            else
-                p->next_block = i->next_block;
-            i->next_block = free_top;
-            free_top = i;
-        }
-        p = i;
-        i = i->next_block;
-    }
+			if (p == i)
+				used_top = i->next_block;
+			else
+				p->next_block = i->next_block;
+			i->next_block = free_top;
+			free_top = i;
+		}
+		p = i;
+		i = i->next_block;
+	}
 }
 
 /*
@@ -171,28 +174,27 @@ void kfree(void *ptr)
  */
 size_t ksize(void *ptr)
 {
-    struct mblock *i = used_top;
-    while(i) {
-        if(i->memory == ptr) {
-            return i->size;
-        }
-        i = i->next_block;
-    }
-    return 0;
+	struct mblock *i = used_top;
+
+	while (i) {
+		if (i->memory == ptr)
+			return i->size;
+		i = i->next_block;
+	}
+	return 0;
 }
 
 void check_for_heap_corruption()
 {
-    struct mblock *i = used_top;
-    struct mblock *p = i;
-    while(i) {
-		if (*((int*)(i->memory - 4)) != GUARD_1 || *((int*)(i->memory + i->size)) != GUARD_2)
-		{
+	struct mblock *i = used_top;
+	struct mblock *p = i;
+
+	while (i) {
+		if (*((int *)(i->memory - 4)) != GUARD_1 || *((int *)(i->memory + i->size)) != GUARD_2)
 			/* The heap has been corrupted! */
 			panic("heap corruption, corrupt block at %x", i->memory);
-		}
-        
-        p = i;
-        i = i->next_block;
-    }
+
+		p = i;
+		i = i->next_block;
+	}
 }

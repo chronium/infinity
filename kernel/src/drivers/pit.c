@@ -38,7 +38,7 @@ static void pit_irq(struct regs *state);
 
 void init_pit(uint32_t freq)
 {
-	if(!request_irq(0, pit_irq)) {
+	if (!request_irq(0, pit_irq)) {
 		uint32_t divisor = 1193180 / freq;
 		outb(0x43, 0x36);
 		outb(0x40, divisor & 0xFF);
@@ -55,7 +55,7 @@ static void pit_irq(struct regs *state)
 	pit_irq_regs = state;
 	extern void dequeue_next_task();
 	dequeue_next_task();
-	
+
 	perform_context_switch(state);
 	pit_tick++;
 }
