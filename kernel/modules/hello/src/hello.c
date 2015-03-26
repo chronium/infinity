@@ -3,11 +3,11 @@
 
 int mod_init()
 {
-	printk(KERN_INFO "Hello, infinity kernel!\n");
-	return 0;
+    printk(KERN_INFO "Hello, infinity kernel!\n");
+    return 0;
 }
 
 int mod_uninit()
 {
-	printk(KERN_INFO "Goodbye infinity kernel :(\n");
+    printk(KERN_INFO "Goodbye infinity kernel :(\n");
 }

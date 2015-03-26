@@ -31,11 +31,11 @@ typedef struct {
 } DIR;
 
 struct dirent {   
-	ino_t 				d_ino;
-	off_t 				d_off;
-	unsigned short int 	d_reclen;
-	unsigned char 		d_type;
-	char 				d_name[256];
+    ino_t 				d_ino;
+    off_t 				d_off;
+    unsigned short int 	d_reclen;
+    unsigned char 		d_type;
+    char 				d_name[256];
 };
 
 DIR *opendir(const char *name);

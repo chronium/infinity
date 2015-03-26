@@ -43,24 +43,24 @@ static size_t ramdisk_read(void *tag, void *buff, int off, size_t size);
  */
 void init_ramdisk(void *memory, int size) 
 {
-	printk(KERN_DEBUG "DEBUG: Preparing to create initrd (Start %x)\n", memory);
-	ramdisk_dev = device_create(BLOCK_DEVICE, "ramdisk");
-	ramdisk_dev->read = ramdisk_read;
-	ramdisk_dev->write = ramdisk_write;
-	initrd_ptr = memory;
-	
-	register_ifs();
-	virtfs_init(ramdisk_dev, &ifs_filesystem);
+    printk(KERN_DEBUG "DEBUG: Preparing to create initrd (Start %x)\n", memory);
+    ramdisk_dev = device_create(BLOCK_DEVICE, "ramdisk");
+    ramdisk_dev->read = ramdisk_read;
+    ramdisk_dev->write = ramdisk_write;
+    initrd_ptr = memory;
+    
+    register_ifs();
+    virtfs_init(ramdisk_dev, &ifs_filesystem);
 }
 
 static size_t ramdisk_write(void *tag, const void *buff, int off, size_t size)
 {
-	memcpy(&initrd_ptr[off], buff, size);
-	return size;
+    memcpy(&initrd_ptr[off], buff, size);
+    return size;
 }
 
 static size_t ramdisk_read(void *tag, void *buff, int off, size_t size)
 {
-	memcpy(buff, &initrd_ptr[off], size);
-	return size;
+    memcpy(buff, &initrd_ptr[off], size);
+    return size;
 }

@@ -148,10 +148,10 @@ void kfree(void *ptr)
         if(i->memory == ptr) {
             if (*((int*)(i->memory - 4)) != GUARD_1 || *((int*)(i->memory + i->size)) != GUARD_2)
             {
-				/* The heap has been corrupted! */
-				panic("heap corruption, corrupt block at %x (Guard 1: %p Guard 2:%p)", ptr,
-				*((int*)(i->memory - 4)), *((int*)(i->memory + i->size)));
-			}
+                /* The heap has been corrupted! */
+                panic("heap corruption, corrupt block at %x (Guard 1: %p Guard 2:%p)", ptr,
+                *((int*)(i->memory - 4)), *((int*)(i->memory + i->size)));
+            }
             if(p == i)
                 used_top = i->next_block;
             else
@@ -186,11 +186,11 @@ void check_for_heap_corruption()
     struct mblock *i = used_top;
     struct mblock *p = i;
     while(i) {
-		if (*((int*)(i->memory - 4)) != GUARD_1 || *((int*)(i->memory + i->size)) != GUARD_2)
-		{
-			/* The heap has been corrupted! */
-			panic("heap corruption, corrupt block at %x", i->memory);
-		}
+        if (*((int*)(i->memory - 4)) != GUARD_1 || *((int*)(i->memory + i->size)) != GUARD_2)
+        {
+            /* The heap has been corrupted! */
+            panic("heap corruption, corrupt block at %x", i->memory);
+        }
         
         p = i;
         i = i->next_block;

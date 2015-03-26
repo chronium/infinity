@@ -37,16 +37,16 @@ static size_t serial_write_com1(void *tag, const char *data, size_t s, uint32_t 
 
 void init_serial()
 {
-	serial_dev1 = device_create(CHAR_DEVICE, "ttyS0");
-	serial_dev1->write = serial_write_com1;
-	
-	outb(COM_PORT + 1, 0x00);
-	outb(COM_PORT + 3, 0x80);
-	outb(COM_PORT + 0, 0x03);
-	outb(COM_PORT + 1, 0x00);
-	outb(COM_PORT + 3, 0x03);
-	outb(COM_PORT + 2, 0xC7);
-	outb(COM_PORT + 4, 0x0B); 
+    serial_dev1 = device_create(CHAR_DEVICE, "ttyS0");
+    serial_dev1->write = serial_write_com1;
+    
+    outb(COM_PORT + 1, 0x00);
+    outb(COM_PORT + 3, 0x80);
+    outb(COM_PORT + 0, 0x03);
+    outb(COM_PORT + 1, 0x00);
+    outb(COM_PORT + 3, 0x03);
+    outb(COM_PORT + 2, 0xC7);
+    outb(COM_PORT + 4, 0x0B); 
 }
 
 /*
@@ -54,9 +54,9 @@ void init_serial()
  */
 static size_t serial_write_com1(void *tag, const char *data, size_t s, uint32_t add)
 {
-	for(int i = 0; i < s; i++)
-		serial_putc(data[i]);
-	return s;
+    for(int i = 0; i < s; i++)
+        serial_putc(data[i]);
+    return s;
 }
 
 /*
@@ -64,8 +64,8 @@ static size_t serial_write_com1(void *tag, const char *data, size_t s, uint32_t 
  */
 static void serial_putc(char c)
 {
-	while(!serial_is_empty());
-	outb(COM_PORT, c);
+    while(!serial_is_empty());
+    outb(COM_PORT, c);
 }
 
 /*
@@ -73,5 +73,5 @@ static void serial_putc(char c)
  */
 static int serial_is_empty()
 {
-	return inb(COM_PORT + 5) & 0x20;
+    return inb(COM_PORT + 5) & 0x20;
 }

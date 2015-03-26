@@ -39,19 +39,19 @@ static int remove_from_file_table(struct file *file);
  */
 struct file *fopen(const char *path, int oflags) 
 {
-	printk(KERN_INFO "DEBUG: Open %s\n", path);
-	struct file *new_file = (struct file*)kalloc(sizeof(struct file));
-	memset(new_file, 0, sizeof(struct file));
-	int res = virtfs_open(new_file, path, oflags);
-	if(res == 0) {
-		add_to_file_table(new_file);
-		return new_file;
-	}
-	printk(KERN_ERR "ERROR: virtfs_open() failed!\n");
-	
-	kfree(new_file);
-	
-	return NULL;
+    printk(KERN_INFO "DEBUG: Open %s\n", path);
+    struct file *new_file = (struct file*)kalloc(sizeof(struct file));
+    memset(new_file, 0, sizeof(struct file));
+    int res = virtfs_open(new_file, path, oflags);
+    if(res == 0) {
+        add_to_file_table(new_file);
+        return new_file;
+    }
+    printk(KERN_ERR "ERROR: virtfs_open() failed!\n");
+    
+    kfree(new_file);
+    
+    return NULL;
 }
 
 /*
@@ -61,7 +61,7 @@ struct file *fopen(const char *path, int oflags)
  */
 int fclose(struct file *f)
 {
-	return remove_from_file_table(f);
+    return remove_from_file_table(f);
 }
 
 /*
@@ -69,17 +69,17 @@ int fclose(struct file *f)
  */
 static void add_to_file_table(struct file *nfile)
 {
-	struct file_table_entry *entry = (struct file_table_entry*)kalloc(sizeof(struct file_table_entry));
-	entry->next = NULL;
-	entry->file_entry = nfile;
-	if(!file_table) {
-		file_table = entry;
-	} else {
-		struct file_table_entry *i = file_table;
-		while(i->next)
-			i = i->next;
-		i->next = entry;
-	}
+    struct file_table_entry *entry = (struct file_table_entry*)kalloc(sizeof(struct file_table_entry));
+    entry->next = NULL;
+    entry->file_entry = nfile;
+    if(!file_table) {
+        file_table = entry;
+    } else {
+        struct file_table_entry *i = file_table;
+        while(i->next)
+            i = i->next;
+        i->next = entry;
+    }
 }
 
 /*
@@ -87,23 +87,23 @@ static void add_to_file_table(struct file *nfile)
  */
 static int remove_from_file_table(struct file *file)
 {
-	struct file_table_entry *i = file_table;
-	struct file_table_entry *last = NULL;
-	
-	while(i) {
-		
-		if(i->file_entry == file) {
-			if(last)
-				last->next = i->next;
-			else
-				file_table = i->next;
-			kfree(i->file_entry);
-			kfree(i);
-			return 0;
-		}
-		
-		last = i;
-		i = i->next;
-	}
-	return -1;
+    struct file_table_entry *i = file_table;
+    struct file_table_entry *last = NULL;
+    
+    while(i) {
+        
+        if(i->file_entry == file) {
+            if(last)
+                last->next = i->next;
+            else
+                file_table = i->next;
+            kfree(i->file_entry);
+            kfree(i);
+            return 0;
+        }
+        
+        last = i;
+        i = i->next;
+    }
+    return -1;
 }
