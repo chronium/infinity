@@ -63,9 +63,9 @@ void init_textscreen()
  */
 void clrscr()
 {
-    for (int i = 0; i < 2000; i++)
-        video_memory[i] = 0;
-    terminal_pos = 0;
+	for (int i = 0; i < 2000; i++)
+		video_memory[i] = 0;
+	terminal_pos = 0;
 }
 
 /*

@@ -28,9 +28,9 @@
  */
 void spin_lock(spinlock_t *lock)
 {
-    while (*lock)
-        asm("pause");
-    __sync_lock_test_and_set(lock, 1);
+	while (*lock)
+		asm("pause");
+	__sync_lock_test_and_set(lock, 1);
 }
 
 /*
@@ -39,8 +39,8 @@ void spin_lock(spinlock_t *lock)
  */
 void spin_unlock(spinlock_t *lock)
 {
-    asm volatile("": : :"memory");
-    __sync_lock_release(lock, 0);
+	asm volatile("": : :"memory");
+	__sync_lock_release(lock, 0);
 }
 
 /*

@@ -45,9 +45,9 @@ static void kthread_main();
  */
 void kmain(multiboot_info_t *mbootinfo)
 {
-    void *heap_start = *(uint32_t*)(mbootinfo->mods_addr + 4);
-    void *module_start = *(uint32_t*)(mbootinfo->mods_addr);
-    
+	void *heap_start = *(uint32_t*)(mbootinfo->mods_addr + 4);
+	void *module_start = *(uint32_t*)(mbootinfo->mods_addr);
+	
     init_kheap(heap_start);
     init_textscreen();
     init_serial();
@@ -73,11 +73,11 @@ void kmain(multiboot_info_t *mbootinfo)
  */
 static void kthread_main()
 {
-    struct file *test = fopen("/hello.txt", O_RDWR);
-    
-    
-    printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
-    init_boot_modules();
-    printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
-    while(1) asm("hlt"); // We are done. Stay here
+	struct file *test = fopen("/hello.txt", O_RDWR);
+	
+	
+	printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
+	init_boot_modules();
+	printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
+	while(1) asm("hlt"); // We are done. Stay here
 }

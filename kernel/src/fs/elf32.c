@@ -44,16 +44,16 @@ static int elf_get_strindex(struct elf32_ehdr *hdr, const char *sym);
  */
 void *elf_open(const char* path)
 {
-    struct file *elf = fopen(path, O_RDWR);
-    void *exe = kalloc(elf->f_len);
-    virtfs_read(elf, exe, 0, elf->f_len); 
-    //elf_move_symbols(exe);
-    elf_alloc_sections(exe);
-    elf_relocate(exe);
-    
-    fclose(elf);
-    
-    return exe;
+	struct file *elf = fopen(path, O_RDWR);
+	void *exe = kalloc(elf->f_len);
+	virtfs_read(elf, exe, 0, elf->f_len); 
+	//elf_move_symbols(exe);
+	elf_alloc_sections(exe);
+	elf_relocate(exe);
+	
+	fclose(elf);
+	
+	return exe;
 }
 
 /*
@@ -63,26 +63,26 @@ void *elf_open(const char* path)
  */
 void *elf_sym(const void *elf, const char *sym)
 {
-    struct elf32_ehdr *hdr= (struct elf32_ehdr*)elf;
-    struct elf32_shdr *shdr = elf_sheader(hdr);
-    
-    for(int i = 0; i < hdr->e_shnum; i++) {
-        struct elf32_shdr *section = &shdr[i];
+	struct elf32_ehdr *hdr= (struct elf32_ehdr*)elf;
+	struct elf32_shdr *shdr = elf_sheader(hdr);
+	
+	for(int i = 0; i < hdr->e_shnum; i++) {
+		struct elf32_shdr *section = &shdr[i];
  
-        if(section->sh_type == SHT_SYMTAB) {
-            
-            for(int idx = 0; idx < section->sh_size / section->sh_entsize; idx++) {
-                struct elf32_sym *symbol = &((struct elf32_sym*)((int)hdr + section->sh_offset))[idx];
-                
-                if(strcmp(elf_lookup_string_strtab(hdr, symbol->st_name), sym) == 0)
-                {
-                    struct elf32_shdr *target = elf_section(hdr, symbol->st_shndx);
-                    return elf_get_symval(hdr, i, idx);
-                }
-            }
-        }
-    }
-    return 1;
+		if(section->sh_type == SHT_SYMTAB) {
+			
+			for(int idx = 0; idx < section->sh_size / section->sh_entsize; idx++) {
+				struct elf32_sym *symbol = &((struct elf32_sym*)((int)hdr + section->sh_offset))[idx];
+				
+				if(strcmp(elf_lookup_string_strtab(hdr, symbol->st_name), sym) == 0)
+				{
+					struct elf32_shdr *target = elf_section(hdr, symbol->st_shndx);
+					return elf_get_symval(hdr, i, idx);
+				}
+			}
+		}
+	}
+	return 1;
 }
 
 /*
@@ -95,38 +95,38 @@ int elf_close(void *elf)
 
 static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx) 
 {
-    if(table == SHN_UNDEF || idx == SHN_UNDEF)
-        return 0;
-        
-    struct elf32_shdr *symtab = elf_section(hdr, table);
+	if(table == SHN_UNDEF || idx == SHN_UNDEF)
+		return 0;
+		
+	struct elf32_shdr *symtab = elf_section(hdr, table);
  
-    if(idx >= symtab->sh_size) {
-        return -1;
-    }
+	if(idx >= symtab->sh_size) {
+		return -1;
+	}
  
-    int symaddr = (int)hdr + symtab->sh_offset;
-    struct elf32_sym *symbol = &((struct elf32_sym *)symaddr)[idx];
-    
-    if(symbol->st_shndx == SHN_ABS) {
-        return symbol->st_value;
-    } else if(symbol->st_shndx == SHN_UNDEF) {
-        struct elf32_shdr *strtab = elf_section(hdr, symtab->sh_link);
-        const char *name = (const char *)hdr + strtab->sh_offset + symbol->st_name;
+	int symaddr = (int)hdr + symtab->sh_offset;
+	struct elf32_sym *symbol = &((struct elf32_sym *)symaddr)[idx];
+	
+	if(symbol->st_shndx == SHN_ABS) {
+		return symbol->st_value;
+	} else if(symbol->st_shndx == SHN_UNDEF) {
+		struct elf32_shdr *strtab = elf_section(hdr, symtab->sh_link);
+		const char *name = (const char *)hdr + strtab->sh_offset + symbol->st_name;
  
-        void *target = resolve_ksym(name);
+		void *target = resolve_ksym(name);
  
-        if(target == NULL) {
-            if(ELF32_ST_BIND(symbol->st_info) & STB_WEAK) {
-                return 0;
-            } else {
-                return 0;
-            }
-        } else 
-            return (int)target;
-    } else {
-        struct elf32_shdr *target = elf_section(hdr, symbol->st_shndx);
-        return (int)hdr  + target->sh_offset + symbol->st_value;
-    }
+		if(target == NULL) {
+			if(ELF32_ST_BIND(symbol->st_info) & STB_WEAK) {
+				return 0;
+			} else {
+				return 0;
+			}
+		} else 
+			return (int)target;
+	} else {
+		struct elf32_shdr *target = elf_section(hdr, symbol->st_shndx);
+		return (int)hdr  + target->sh_offset + symbol->st_value;
+	}
 }
 
 /*
@@ -135,20 +135,20 @@ static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx)
  */
 static int elf_move_symbols(struct elf32_ehdr *hdr)
 {
-    struct elf32_shdr *shdr = elf_sheader(hdr);
-    
-    for(int i = 0; i < hdr->e_shnum; i++) {
-        struct elf32_shdr *section = &shdr[i];
+	struct elf32_shdr *shdr = elf_sheader(hdr);
+	
+	for(int i = 0; i < hdr->e_shnum; i++) {
+		struct elf32_shdr *section = &shdr[i];
  
-        if(section->sh_type == SHT_SYMTAB) {
-            
-            for(int idx = 0; idx < section->sh_size / section->sh_entsize; idx++) {
-                struct elf32_sym *symbol = &((struct elf32_sym*)((int)hdr + section->sh_offset))[idx];
-                struct elf32_shdr *target = elf_section(hdr, symbol->st_shndx);
-                symbol->st_value = hdr + target->sh_offset + symbol->st_value;
-            }
-        }
-    }
+		if(section->sh_type == SHT_SYMTAB) {
+			
+			for(int idx = 0; idx < section->sh_size / section->sh_entsize; idx++) {
+				struct elf32_sym *symbol = &((struct elf32_sym*)((int)hdr + section->sh_offset))[idx];
+				struct elf32_shdr *target = elf_section(hdr, symbol->st_shndx);
+				symbol->st_value = hdr + target->sh_offset + symbol->st_value;
+			}
+		}
+	}
 }
 
 /*
@@ -156,22 +156,22 @@ static int elf_move_symbols(struct elf32_ehdr *hdr)
  */
 static int elf_alloc_sections(struct elf32_ehdr *hdr)
 {
-    struct elf32_shdr *shdr = elf_sheader(hdr);
+	struct elf32_shdr *shdr = elf_sheader(hdr);
  
-    for(int i = 0; i < hdr->e_shnum; i++) {
-        struct elf32_shdr *section = &shdr[i];
+	for(int i = 0; i < hdr->e_shnum; i++) {
+		struct elf32_shdr *section = &shdr[i];
  
-        if(section->sh_type == SHT_NOBITS) {
-            if(!section->sh_size)
-                continue;
-            if(section->sh_flags & SHF_ALLOC) {
-                void *mem = kalloc(section->sh_size);
-                memset(mem, 0, section->sh_size);
-                section->sh_offset = (int)mem - (int)hdr;
-            }
-        }
-    }
-    return 0;
+		if(section->sh_type == SHT_NOBITS) {
+			if(!section->sh_size)
+				continue;
+			if(section->sh_flags & SHF_ALLOC) {
+				void *mem = kalloc(section->sh_size);
+				memset(mem, 0, section->sh_size);
+				section->sh_offset = (int)mem - (int)hdr;
+			}
+		}
+	}
+	return 0;
 }
 
 /*
@@ -179,24 +179,24 @@ static int elf_alloc_sections(struct elf32_ehdr *hdr)
  */
 static int elf_relocate(struct elf32_ehdr *hdr)
 {
-    struct elf32_shdr *shdr = elf_sheader(hdr);
+	struct elf32_shdr *shdr = elf_sheader(hdr);
  
-    for(int i = 0; i < hdr->e_shnum; i++) {
-        struct elf32_shdr *section = &shdr[i];
+	for(int i = 0; i < hdr->e_shnum; i++) {
+		struct elf32_shdr *section = &shdr[i];
  
-        if(section->sh_type == SHT_REL) {
-            
-            for(int j = 0; j < section->sh_size / section->sh_entsize; j++) {
-                struct elf32_rel *reltab = &((struct elf32_rel*)((int)hdr + section->sh_offset))[j];
-                int result = elf_do_reloc(hdr, reltab, section);
-                
-                if(result) {
-                    printk(KERN_ALERT "We have failed\n");
-                }
-            }
-        }
-    }
-    return 0;
+		if(section->sh_type == SHT_REL) {
+			
+			for(int j = 0; j < section->sh_size / section->sh_entsize; j++) {
+				struct elf32_rel *reltab = &((struct elf32_rel*)((int)hdr + section->sh_offset))[j];
+				int result = elf_do_reloc(hdr, reltab, section);
+				
+				if(result) {
+					printk(KERN_ALERT "We have failed\n");
+				}
+			}
+		}
+	}
+	return 0;
 }
 
 /*
@@ -204,31 +204,31 @@ static int elf_relocate(struct elf32_ehdr *hdr)
  */
 static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct elf32_shdr *reltab)
 {
-    struct elf32_shdr *target = elf_section(hdr, reltab->sh_info);
+	struct elf32_shdr *target = elf_section(hdr, reltab->sh_info);
  
-    int addr = (int)hdr + target->sh_offset;
-    int *ref = (int *)(addr + rel->r_offset);
-    int symval = 0;
-    
-    if(ELF32_R_SYM(rel->r_info) != SHN_UNDEF) {
-        symval = elf_get_symval(hdr, reltab->sh_link, ELF32_R_SYM(rel->r_info));
-        if(symval == 0)
-            return -1;
-    }
-    
-    switch(ELF32_R_TYPE(rel->r_info)) {
-        case R_386_NONE:
-            break;
-        case R_386_32:
-            *ref = DO_386_32(symval, *ref);
-            break;
-        case R_386_PC32:
-            *ref = DO_386_PC32(symval, *ref, (int)ref);
-            break;
-        default:
-            printk(KERN_WARN "[WARN] Unsupported relocation type (%d).\n", ELF32_R_TYPE(rel->r_info));
-            return -1;
-    }
-    return symval;
+	int addr = (int)hdr + target->sh_offset;
+	int *ref = (int *)(addr + rel->r_offset);
+	int symval = 0;
+	
+	if(ELF32_R_SYM(rel->r_info) != SHN_UNDEF) {
+		symval = elf_get_symval(hdr, reltab->sh_link, ELF32_R_SYM(rel->r_info));
+		if(symval == 0)
+			return -1;
+	}
+	
+	switch(ELF32_R_TYPE(rel->r_info)) {
+		case R_386_NONE:
+			break;
+		case R_386_32:
+			*ref = DO_386_32(symval, *ref);
+			break;
+		case R_386_PC32:
+			*ref = DO_386_PC32(symval, *ref, (int)ref);
+			break;
+		default:
+			printk(KERN_WARN "[WARN] Unsupported relocation type (%d).\n", ELF32_R_TYPE(rel->r_info));
+			return -1;
+	}
+	return symval;
 }
 

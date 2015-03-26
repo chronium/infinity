@@ -41,18 +41,18 @@ struct device *device_create(devtype_t type, const char *name)
     new_dev->dev_name = name;
     new_dev->dev_type = type;
     new_dev->next = NULL;
-    new_dev->dev_id = next_devid++;
+	new_dev->dev_id = next_devid++;
     struct device *i = device_list;
 
     if(!device_list) {
         device_list = new_dev;
         return device_list;
     } else {
-        while (i->next)
-            i = i->next;
-        i->next = new_dev;
-        return new_dev;
-    }
+		while (i->next)
+			i = i->next;
+		i->next = new_dev;
+		return new_dev;
+	}
 }
 
 /*
@@ -60,7 +60,7 @@ struct device *device_create(devtype_t type, const char *name)
  */
 size_t device_read(struct device *dev, void *buff, size_t size, uint32_t addr)
 {
-    return dev->read(dev->dev_tag, buff, size, addr);
+	return dev->read(dev->dev_tag, buff, size, addr);
 }
 
 /*
@@ -68,5 +68,5 @@ size_t device_read(struct device *dev, void *buff, size_t size, uint32_t addr)
  */
 size_t device_write(struct device *dev, const void *buff, size_t size, uint32_t addr)
 {
-    return dev->write(dev->dev_tag, buff, size, addr);
+	return dev->write(dev->dev_tag, buff, size, addr);
 }

@@ -39,45 +39,45 @@ static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t of
 
 void init_devfs()
 {
-    strcpy(devfs.fs_name, "devfs");
-    devfs.write = devfs_write;
-    devfs.open = devfs_open;
-    int res = virtfs_mount(NULL, &devfs, "/dev");
-    printk(KERN_DEBUG, "DEBUG: Mounting devfs to /dev\n");
-    if(res)
-        printk(KERN_ERR, "ERROR: Could not mount devfs to /dev! Things are about to get ugly!\n");
-    
+	strcpy(devfs.fs_name, "devfs");
+	devfs.write = devfs_write;
+	devfs.open = devfs_open;
+	int res = virtfs_mount(NULL, &devfs, "/dev");
+	printk(KERN_DEBUG, "DEBUG: Mounting devfs to /dev\n");
+	if(res)
+		printk(KERN_ERR, "ERROR: Could not mount devfs to /dev! Things are about to get ugly!\n");
+	
 }
 
 
 static int devfs_open(struct device *dev, struct file *f, const char *path, int oflag)
 {
-    struct device *i = device_list;
-    while(i) {
-        if(!strcmp(path, i->dev_name)) {
-            f->f_ino = i->dev_id;
-            f->f_fs = &devfs;
-            if(oflag & O_RDWR || oflag & O_WRONLY)
-                f->f_flags |= F_SUPPORT_WRITE;
-            if(oflag & O_RDONLY || oflag & O_RDWR)
-                f->f_flags |= F_SUPPORT_READ;
-            return 0;
-        }
-        i = i->next;
-    }
-    
-    return -1;
+	struct device *i = device_list;
+	while(i) {
+		if(!strcmp(path, i->dev_name)) {
+			f->f_ino = i->dev_id;
+			f->f_fs = &devfs;
+			if(oflag & O_RDWR || oflag & O_WRONLY)
+				f->f_flags |= F_SUPPORT_WRITE;
+			if(oflag & O_RDONLY || oflag & O_RDWR)
+				f->f_flags |= F_SUPPORT_READ;
+			return 0;
+		}
+		i = i->next;
+	}
+	
+	return -1;
 }
 
 static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t off, size_t len)
 {
-    struct device *i = device_list;
-    while(i) {
-        if(i->dev_id == ino) {
-            return device_write(i, data, len, off);
-        }
-        i = i->next;
-    }
-    
-    return -1;
+	struct device *i = device_list;
+	while(i) {
+		if(i->dev_id == ino) {
+			return device_write(i, data, len, off);
+		}
+		i = i->next;
+	}
+	
+	return -1;
 }

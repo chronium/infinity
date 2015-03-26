@@ -33,47 +33,47 @@ struct mntpoint;
 struct fildes;
 
 struct file {
-    ino_t				f_ino;
-    uint64_t			f_pos;
-    uint64_t			f_len;
-    uint32_t			f_flags;
-    spinlock_t			f_lock;
-    struct device		*f_dev;
-    struct filesystem	*f_fs;
-    struct file			*next;
+	ino_t				f_ino;
+	uint64_t			f_pos;
+	uint64_t			f_len;
+	uint32_t			f_flags;
+	spinlock_t			f_lock;
+	struct device		*f_dev;
+	struct filesystem	*f_fs;
+	struct file			*next;
 };
 
 struct file_table_entry {
-    struct file *file_entry;
-    struct file_table_entry *next;
+	struct file *file_entry;
+	struct file_table_entry *next;
 };
 
 struct fildes {
-    int					fd_num;
-    uint32_t			fd_flags;
-    struct file			*fd_file;
-    struct fildes		*next;
+	int					fd_num;
+	uint32_t			fd_flags;
+	struct file			*fd_file;
+	struct fildes		*next;
 };
 
 struct mntpoint {
-    char				mt_path[256];
-    struct device		*mt_dev;
-    struct filesystem	*mt_fs;
-    struct mntpoint		*mt_children;
-    struct mntpoint		*next;
+	char				mt_path[256];
+	struct device		*mt_dev;
+	struct filesystem	*mt_fs;
+	struct mntpoint		*mt_children;
+	struct mntpoint		*next;
 };
 
 struct filesystem {
-    char				fs_name[128];
-    int (*mkdir)		(struct device *dev, const char *dir);
-    int (*open)			(struct device *dev, struct file *f, const char *path, int oflag);
-    int (*delete)		(struct device *dev, ino_t ino);
-    int (*write)		(struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
-    int (*read)			(struct device *dev, ino_t ino, char *data, off_t off, size_t len);
-    int (*readdir)		(struct device *dev, ino_t ino, int d, struct dirent *dent);
-    int (*rename)		(struct device *dev, ino_t ino, const char *name);
-    int (*fstat)		(struct device *dev, ino_t ino, struct stat *stat_struct);
-    struct filesystem	*next;
+	char				fs_name[128];
+	int (*mkdir)		(struct device *dev, const char *dir);
+	int (*open)			(struct device *dev, struct file *f, const char *path, int oflag);
+	int (*delete)		(struct device *dev, ino_t ino);
+	int (*write)		(struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
+	int (*read)			(struct device *dev, ino_t ino, char *data, off_t off, size_t len);
+	int (*readdir)		(struct device *dev, ino_t ino, int d, struct dirent *dent);
+	int (*rename)		(struct device *dev, ino_t ino, const char *name);
+	int (*fstat)		(struct device *dev, ino_t ino, struct stat *stat_struct);
+	struct filesystem	*next;
 };
 
 struct file *fopen(const char *path, int oflag);
@@ -94,9 +94,9 @@ void init_ramdisk(void *memory, int size);
 
 static inline char *virtfs_remove_leading_slash(const char *path) 
 {
-    if(path[0] == '/')
-        return &path[1];
-    return path;
+	if(path[0] == '/')
+		return &path[1];
+	return path;
 }
 
 

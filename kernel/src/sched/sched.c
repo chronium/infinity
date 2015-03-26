@@ -43,25 +43,25 @@ void init_sched()
  */
 void perform_context_switch(struct regs *state)
 {
-    BEGIN_CRITICAL_REGION;
-    
-    int orgds = state->ds;
-    int orgcs = state->cs;
-    int orgss = state->ss;
-    
-    if(thread_list) {
-        if(current_thread) 
-            memcpy(current_thread->t_regs, state, sizeof(struct regs));
-    
-        current_thread = thread_get_next();
-        memcpy(state, current_thread->t_regs, sizeof(struct regs));
-    }
-    
-    state->ds = orgds;
-    state->cs = orgcs;
-    state->ss = orgss;
-    
-    END_CRITICAL_REGION;
+	BEGIN_CRITICAL_REGION;
+	
+	int orgds = state->ds;
+	int orgcs = state->cs;
+	int orgss = state->ss;
+	
+	if(thread_list) {
+		if(current_thread) 
+			memcpy(current_thread->t_regs, state, sizeof(struct regs));
+	
+		current_thread = thread_get_next();
+		memcpy(state, current_thread->t_regs, sizeof(struct regs));
+	}
+	
+	state->ds = orgds;
+	state->cs = orgcs;
+	state->ss = orgss;
+	
+	END_CRITICAL_REGION;
 }
 
 /*
@@ -69,20 +69,20 @@ void perform_context_switch(struct regs *state)
  */
 static void thread_alloc(struct thread *new_thread)
 {
-    new_thread->next = NULL;
-    
-    struct thread *t = thread_list;
-    
-    if(thread_list) {
-        struct thread *i = thread_list;
-        while(i->next) {
-            i = i->next;
-        }
-        i->next = new_thread;
-    } else {
-        thread_list = new_thread;
-    }
-    
+	new_thread->next = NULL;
+	
+	struct thread *t = thread_list;
+	
+	if(thread_list) {
+		struct thread *i = thread_list;
+		while(i->next) {
+			i = i->next;
+		}
+		i->next = new_thread;
+	} else {
+		thread_list = new_thread;
+	}
+	
 }
 
 
@@ -91,17 +91,17 @@ static void thread_alloc(struct thread *new_thread)
  */
 static struct thread *thread_get_next()
 {
-    struct thread *i = thread_list;
-    while(i) {
-        if(i == current_thread) {
-            if(i->next)
-                return i->next;
-            else
-                return thread_list;
-        }
-        i = i->next;
-    }
-    return thread_list;
+	struct thread *i = thread_list;
+	while(i) {
+		if(i == current_thread) {
+			if(i->next)
+				return i->next;
+			else
+				return thread_list;
+		}
+		i = i->next;
+	}
+	return thread_list;
 }
 
 /*
@@ -111,19 +111,19 @@ static struct thread *thread_get_next()
  */
 void thread_create(void *target, void *arg)
 {
-    BEGIN_CRITICAL_REGION;
-    
-    struct thread *t = (struct thread*)kalloc(sizeof(struct thread));
-    t->t_regs = kalloc(sizeof(struct regs));
-    memcpy(t->t_regs, pit_irq_regs, sizeof(struct regs));
-    t->t_regs->eip = target;
-    void *stack = kalloc(0xFFFFF);
-    t->t_regs->esp = stack + 0xFFFFF;
-    t->t_regs->ebp = stack + 0xFFFFF;
-    
-    thread_alloc(t);
-    
-    END_CRITICAL_REGION;
+	BEGIN_CRITICAL_REGION;
+	
+	struct thread *t = (struct thread*)kalloc(sizeof(struct thread));
+	t->t_regs = kalloc(sizeof(struct regs));
+	memcpy(t->t_regs, pit_irq_regs, sizeof(struct regs));
+	t->t_regs->eip = target;
+	void *stack = kalloc(0xFFFFF);
+	t->t_regs->esp = stack + 0xFFFFF;
+	t->t_regs->ebp = stack + 0xFFFFF;
+	
+	thread_alloc(t);
+	
+	END_CRITICAL_REGION;
 }
 
 /*
@@ -131,5 +131,5 @@ void thread_create(void *target, void *arg)
  */
 void thread_yield()
 {
-    asm("hlt");
+	asm("hlt");
 }

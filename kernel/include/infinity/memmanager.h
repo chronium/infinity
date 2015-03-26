@@ -28,12 +28,12 @@ struct page_frame;
 
 struct page_frame
 {
-    uint16_t					ref_count;
-    uint32_t					phys_addr;
-    uint32_t					virt_addr;
-    uint32_t					index;
-    struct page_frame			*last_frame;
-    struct page_directory		*page_directory;
+	uint16_t					ref_count;
+	uint32_t					phys_addr;
+	uint32_t					virt_addr;
+	uint32_t					index;
+	struct page_frame			*last_frame;
+	struct page_directory		*page_directory;
 };
 
 void* frame_alloc(void *vaddr, int flags);

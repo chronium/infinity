@@ -46,7 +46,7 @@ static void cmos_write(uint8_t cmos_reg, uint8_t val);
  */
 void init_rtc()
 {
-    //struct device *rtc_dev = create_device("rtc");
+	//struct device *rtc_dev = create_device("rtc");
 }
 
 /*

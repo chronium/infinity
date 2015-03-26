@@ -28,9 +28,9 @@
 #include <infinity/types.h>
 
 struct kernel_symbol {
-    char						s_name[64];
-    caddr_t						s_addr;
-    struct kernel_symbol		*next;
+	char						s_name[64];
+	caddr_t						s_addr;
+	struct kernel_symbol		*next;
 };
 
 static struct kernel_symbol *symbol_list = NULL;
@@ -44,67 +44,67 @@ static void ksym_add_to_list(struct kernel_symbol *ksym);
  */
 void parse_symbol_file()
 {
-    struct file *f = fopen("/infinity.map", O_RDWR);
-    
-    if(f == NULL) {
-        printk(KERN_WARN "[WARNING] Could not load kernel symbols!\n");
-    } else {
-        char line[512];
-        while(f->f_len > f->f_pos) {
-            ksym_read_line(f, line);
-            ksym_parse(line);
-        }
-        fclose(f);
-    }
+	struct file *f = fopen("/infinity.map", O_RDWR);
+	
+	if(f == NULL) {
+		printk(KERN_WARN "[WARNING] Could not load kernel symbols!\n");
+	} else {
+		char line[512];
+		while(f->f_len > f->f_pos) {
+			ksym_read_line(f, line);
+			ksym_parse(line);
+		}
+		fclose(f);
+	}
 }
 
 static void ksym_parse(const char *line)
 {
-    char address[9];
-    memset(address, 0, 9);
-    memcpy(address, line, 8);
-    caddr_t addr = strtol(address, 16);
-    char type = line[9];
-    char *name = &line[11];
-    struct kernel_symbol *ksym = (struct kernel_symbol*)kalloc(sizeof(struct kernel_symbol));
-    memcpy(ksym->s_name, name, strlen(name));
-    ksym->s_addr = addr;
-    ksym->next = NULL;
-    ksym_add_to_list(ksym);
+	char address[9];
+	memset(address, 0, 9);
+	memcpy(address, line, 8);
+	caddr_t addr = strtol(address, 16);
+	char type = line[9];
+	char *name = &line[11];
+	struct kernel_symbol *ksym = (struct kernel_symbol*)kalloc(sizeof(struct kernel_symbol));
+	memcpy(ksym->s_name, name, strlen(name));
+	ksym->s_addr = addr;
+	ksym->next = NULL;
+	ksym_add_to_list(ksym);
 }
 
 static void ksym_read_line(struct file *f, char *buf)
 {
-    int i = 0;
-    char dat = 0;
-    while(dat != '\n' && f->f_len > f->f_pos) {
-        if(dat) buf[i++] = dat;
-        virtfs_read(f, &dat, 0, 1);
-    }
-    buf[i] = 0; 	
+	int i = 0;
+	char dat = 0;
+	while(dat != '\n' && f->f_len > f->f_pos) {
+		if(dat) buf[i++] = dat;
+		virtfs_read(f, &dat, 0, 1);
+	}
+	buf[i] = 0; 	
 }
 
 void *resolve_ksym(const char *name)
 {
-    struct kernel_symbol *sym = symbol_list;
-    while(sym) {
-        if(strcmp(name, sym->s_name) == 0) 
-            return (void*)sym->s_addr;
-        sym = sym->next;
-    }
-    return NULL;
+	struct kernel_symbol *sym = symbol_list;
+	while(sym) {
+		if(strcmp(name, sym->s_name) == 0) 
+			return (void*)sym->s_addr;
+		sym = sym->next;
+	}
+	return NULL;
 }
 
 
 static void ksym_add_to_list(struct kernel_symbol *ksym)
 {
-    if(symbol_list == NULL) 
-        symbol_list = ksym;
-    else {
-        struct kernel_symbol *sym = symbol_list;
-        while(sym->next) {
-            sym = sym->next;
-        }
-        sym->next = ksym;
-    }
+	if(symbol_list == NULL) 
+		symbol_list = ksym;
+	else {
+		struct kernel_symbol *sym = symbol_list;
+		while(sym->next) {
+			sym = sym->next;
+		}
+		sym->next = ksym;
+	}
 }

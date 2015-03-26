@@ -33,13 +33,13 @@ struct task *task_list = NULL;
  */
 void schedule_task(struct task *task)
 {
-    if(task_list == NULL) {
-        task_list = task;
-        task->next = NULL;
-    } else {
-        task->next = task_list;
-        task_list = task;
-    }
+	if(task_list == NULL) {
+		task_list = task;
+		task->next = NULL;
+	} else {
+		task->next = task_list;
+		task_list = task;
+	}
 }
 
 /*
@@ -48,9 +48,9 @@ void schedule_task(struct task *task)
  */
 void dequeue_next_task()
 {
-    if(task_list) {
-        struct task *cur = task_list;
-        cur->task_handler(cur->data);
-        task_list = cur->next;
-    }
+	if(task_list) {
+		struct task *cur = task_list;
+		cur->task_handler(cur->data);
+		task_list = cur->next;
+	}
 }
