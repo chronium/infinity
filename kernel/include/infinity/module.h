@@ -1,7 +1,6 @@
 /* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
  *
- * This program is free software; yo
- * u can redistribute it and/or
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
@@ -28,12 +27,12 @@ typedef int (*mod_init_t)();
 typedef int (*mod_uninit_t)();
 
 struct module {
-	uint32_t	mod_magic;
-	char		mod_name[128];
-	mod_init_t	mod_init;
-	mod_uninit_t	mod_uninit;
-	void *		mod_image;
-	struct module * next;
+    uint32_t        mod_magic;
+    char            mod_name[128];
+    mod_init_t      mod_init;
+    mod_uninit_t    mod_uninit;
+    void *          mod_image;
+    struct module * next;
 };
 
 struct module *load_module(const char *path);

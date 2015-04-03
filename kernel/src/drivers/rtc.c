@@ -1,5 +1,5 @@
 /* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
- *
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -46,32 +46,32 @@ static void cmos_write(uint8_t cmos_reg, uint8_t val);
  */
 void init_rtc()
 {
-	//struct device *rtc_dev = create_device("rtc");
+    //struct device *rtc_dev = create_device("rtc");
 }
 
 /*
  * Gets the current UNIX timestamp
- * @param timer		A pointer to the time_t to store the timestamp in
+ * @param timer     A pointer to the time_t to store the timestamp in
  */
 time_t time(time_t *timer)
 {
-	int MONTH_LOOKUP[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-	int MONTH_LOOKUP_LEAP[12] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-	int year = CONVERT_TO_BINARY(cmos_read(RTC_YEAR)) + 2000;
-	int utime = CONVERT_TO_BINARY(cmos_read(RTC_SECONDS));
+    int MONTH_LOOKUP[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    int MONTH_LOOKUP_LEAP[12] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    int year = CONVERT_TO_BINARY(cmos_read(RTC_YEAR)) + 2000;
+    int utime = CONVERT_TO_BINARY(cmos_read(RTC_SECONDS));
 
-	for (int i = 0; i < CONVERT_TO_BINARY(cmos_read(RTC_MONTH)); i++)
-		utime += MONTH_LOOKUP[i] * 86400;
+    for (int i = 0; i < CONVERT_TO_BINARY(cmos_read(RTC_MONTH)); i++)
+        utime += MONTH_LOOKUP[i] * 86400;
 
-	utime += CONVERT_TO_BINARY(cmos_read(RTC_MINUTES)) * 60;
-	utime += CONVERT_TO_BINARY(cmos_read(RTC_HOURS)) * 3600;
-	utime += CONVERT_TO_BINARY(cmos_read(RTC_DAY_OF_MONTH)) * 86400;
-	utime += (year - 1970) * 31536000;
+    utime += CONVERT_TO_BINARY(cmos_read(RTC_MINUTES)) * 60;
+    utime += CONVERT_TO_BINARY(cmos_read(RTC_HOURS)) * 3600;
+    utime += CONVERT_TO_BINARY(cmos_read(RTC_DAY_OF_MONTH)) * 86400;
+    utime += (year - 1970) * 31536000;
 
-	if (timer)
-		*timer = utime;
+    if (timer)
+        *timer = utime;
 
-	return utime;
+    return utime;
 }
 
 
@@ -80,8 +80,8 @@ time_t time(time_t *timer)
  */
 static uint16_t cmos_read(uint8_t cmos_reg)
 {
-	outb(0x70, (0x80 << 7) | (cmos_reg));
-	return inb(0x71);
+    outb(0x70, (0x80 << 7) | (cmos_reg));
+    return inb(0x71);
 }
 
 /*
@@ -89,6 +89,6 @@ static uint16_t cmos_read(uint8_t cmos_reg)
  */
 static void cmos_write(uint8_t cmos_reg, uint8_t val)
 {
-	outb(0x70, (0x80 << 7) | (cmos_reg));
-	outb(0x71, val);
+    outb(0x70, (0x80 << 7) | (cmos_reg));
+    outb(0x71, val);
 }

@@ -29,49 +29,49 @@ static int rb_pop_byte(struct ring_buffer *rb);
 
 void rb_init(struct ring_buffer *rb, int size)
 {
-	rb->rb_len = size;
-	rb->rb_pos = 0;
-	rb->rb_start = 0;
-	rb->rb_buff = kalloc(size);
-	spin_unlock(&rb->rb_lock);
+    rb->rb_len = size;
+    rb->rb_pos = 0;
+    rb->rb_start = 0;
+    rb->rb_buff = kalloc(size);
+    spin_unlock(&rb->rb_lock);
 }
 
 void rb_push(struct ring_buffer *rb, const void *data, int len)
 {
-	spin_lock(&rb->rb_lock);
-	for (int i = 0; i < len; i++)
-		rb_push_byte(rb, ((char *)data)[i]);
-	spin_unlock(&rb->rb_lock);
+    spin_lock(&rb->rb_lock);
+    for (int i = 0; i < len; i++)
+        rb_push_byte(rb, ((char *)data)[i]);
+    spin_unlock(&rb->rb_lock);
 }
 
 void rb_pop(struct ring_buffer *rb, void *buf, int len)
 {
-	spin_lock(&rb->rb_lock);
-	for (int i = len - 1; i >= 0; i--)
-		((char *)buf)[i] = (char)rb_pop_byte(rb);
-	spin_unlock(&rb->rb_lock);
+    spin_lock(&rb->rb_lock);
+    for (int i = len - 1; i >= 0; i--)
+        ((char *)buf)[i] = (char)rb_pop_byte(rb);
+    spin_unlock(&rb->rb_lock);
 }
 
 void *rb_flush(struct ring_buffer *rb, void *buf, int size)
 {
-	spin_lock(&rb->rb_lock);
-	int pos = rb->rb_start;
-	for (int i = 0; i < rb->rb_len && i < size; pos = (pos + 1) % rb->rb_len)
-		((char *)buf)[i++] = rb->rb_buff[pos];
-	spin_unlock(&rb->rb_lock);
+    spin_lock(&rb->rb_lock);
+    int pos = rb->rb_start;
+    for (int i = 0; i < rb->rb_len && i < size; pos = (pos + 1) % rb->rb_len)
+        ((char *)buf)[i++] = rb->rb_buff[pos];
+    spin_unlock(&rb->rb_lock);
 }
 
 static void rb_push_byte(struct ring_buffer *rb, char b)
 {
-	rb->rb_buff[rb->rb_pos % rb->rb_len] = b;
-	rb->rb_pos++;
-	if (rb->rb_pos % rb->rb_len > rb->rb_len)
-		rb->rb_start = rb->rb_pos % rb->rb_len;
+    rb->rb_buff[rb->rb_pos % rb->rb_len] = b;
+    rb->rb_pos++;
+    if (rb->rb_pos % rb->rb_len > rb->rb_len)
+        rb->rb_start = rb->rb_pos % rb->rb_len;
 }
 
 static int rb_pop_byte(struct ring_buffer *rb)
 {
-	rb->rb_pos--;
-	int ret = rb->rb_buff[rb->rb_pos % rb->rb_len];
-	return ret;
+    rb->rb_pos--;
+    int ret = rb->rb_buff[rb->rb_pos % rb->rb_len];
+    return ret;
 }

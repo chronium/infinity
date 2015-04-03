@@ -22,24 +22,25 @@
 #include <stddef.h>
 
 typedef enum devtype {
-	BLOCK_DEVICE = 0,
-	CHAR_DEVICE = 1,
+    BLOCK_DEVICE = 0,
+    CHAR_DEVICE = 1,
 } devtype_t;
 
 
 struct device {
-	char *		dev_name;
-	devtype_t	dev_type;
-	int		dev_id;
-	void *		dev_tag;
-	size_t		(*read)                      (void *tag, void *buffer, size_t, uint32_t addr);
-	size_t		(*write)             (void *tag, const void *data, size_t, uint32_t addr);
-	int		(*ioctl)                        (void *tag, unsigned long request, ...);
-	struct device * next;
+    char *          dev_name;
+    devtype_t       dev_type;
+    int             dev_id;
+    void *          dev_tag;
+    size_t          (*read)     (void *tag, void *buffer, size_t, uint32_t addr);
+    size_t          (*write)    (void *tag, const void *data, size_t, uint32_t addr);
+    int             (*ioctl)    (void *tag, unsigned long request, ...);
+    struct device * next;
 };
 
 struct device *device_create(devtype_t type, const char *name);
 size_t device_read(struct device *dev, void *buff, size_t size, uint32_t addr);
 size_t device_write(struct device *dev, const void *buff, size_t size, uint32_t addr);
 void init_devfs();
+
 #endif

@@ -25,26 +25,26 @@
 #define KERN_EMERG      "<0>"
 #define KERN_ALERT      "<1>"
 #define KERN_ERR        "<2>"
-#define KERN_WARN           "<3>"
+#define KERN_WARN       "<3>"
 #define KERN_INFO       "<4>"
 #define KERN_DEBUG      "<5>"
 
 typedef enum {
-	LOG_KERN_DEBUG = 0,
-	LOG_KERN_INFO = 1,
-	LOG_KERN_WARN = 2,
-	LOG_KERN_ERR = 3,
-	LOG_KERN_ALERT = 4,
-	LOG_KERN_EMERG = 5
+    LOG_KERN_DEBUG =    0,
+    LOG_KERN_INFO =     1,
+    LOG_KERN_WARN =     2,
+    LOG_KERN_ERR =      3,
+    LOG_KERN_ALERT =    4,
+    LOG_KERN_EMERG =    5
 } loglevel_t;
 
 struct kernel_msg;
 
 struct kernel_msg {
-	loglevel_t		log_level;
-	struct tm		msg_tm;
-	char			msg_string[512];
-	struct kernel_msg *	next;
+    loglevel_t          log_level;
+    struct tm           msg_tm;
+    char                msg_string[512];
+    struct kernel_msg * next;
 };
 
 void parse_symbol_file();

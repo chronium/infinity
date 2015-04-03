@@ -15,17 +15,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef INFINITY_PORTIO_H
-#define INFINITY_PORTIO_H
+#ifndef INFINITY_TTY_H
+#define INFINITY_TTY_H
 
-#include <stdint.h>
+#include <infinity/device.h>
 
-uint8_t inb(uint16_t port);
-uint16_t inw(uint16_t port);
-uint32_t inl(uint16_t port);
-void insl(uint16_t port, void *address, int count);
-void outb(uint16_t port, uint8_t val);
-void outw(uint16_t port, uint16_t val);
-void outl(uint16_t port, uint32_t val);
+struct tty {
+    struct device * t_device;
+    struct tty *    next;
+};
 
+struct tty *create_tty();
+void set_tty(struct tty *t);
+struct tty *get_tty();
 #endif

@@ -1,5 +1,5 @@
 /* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
- *
+ * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -30,27 +30,27 @@
 
 /*
  * Returns a time struct that MUST be freed manually!
- * @param timep		The UNIX time
+ * @param timep     The UNIX time
  */
 struct tm *gmtime(const time_t *timep)
 {
-	struct tm *ret = (struct tm *)kalloc(sizeof(struct tm *));
+    struct tm *ret = (struct tm *)kalloc(sizeof(struct tm *));
 
-	gmtime_r(timep, ret);
-	return ret;
+    gmtime_r(timep, ret);
+    return ret;
 }
 
 /*
  * Will write a time struct from a given UNIX time into buf
- * @param timep		The UNIX time
- * @param buf		The buffer to read into
+ * @param timep     The UNIX time
+ * @param buf       The buffer to read into
  */
 struct tm *gmtime_r(const time_t *timep, struct tm *buf)
 {
-	time_t t = time(NULL);
+    time_t t = time(NULL);
 
-	buf->tm_hour = (t / 3600) % 24;
-	buf->tm_min = (t / 60) % 60;
-	buf->tm_sec = t % 60;
-	return buf;
+    buf->tm_hour = (t / 3600) % 24;
+    buf->tm_min = (t / 60) % 60;
+    buf->tm_sec = t % 60;
+    return buf;
 }

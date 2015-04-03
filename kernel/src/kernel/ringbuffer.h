@@ -21,11 +21,11 @@
 #include <infinity/sync.h>
 
 struct ring_buffer {
-	char *		rb_buff;
-	int		rb_len;
-	int		rb_pos;
-	int		rb_start;
-	spinlock_t	rb_lock;
+    char*       rb_buff;
+    int         rb_len;
+    int         rb_pos;
+    int         rb_start;
+    spinlock_t  rb_lock;
 };
 
 void rb_init(struct ring_buffer *rb, int size);

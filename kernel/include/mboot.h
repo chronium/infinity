@@ -94,6 +94,7 @@
 
 typedef unsigned short multiboot_uint16_t;
 typedef unsigned int multiboot_uint32_t;
+typedef unsigned char multiboot_uint8_t;
 typedef unsigned long long multiboot_uint64_t;
 
 struct multiboot_header {
@@ -209,6 +210,34 @@ struct multiboot_mod_list {
 	/* padding to take it to 16 bytes (must be zero) */
 	multiboot_uint32_t	pad;
 };
+
+typedef struct {
+	multiboot_uint16_t attributes;
+	multiboot_uint8_t  winA, winB;
+	multiboot_uint16_t granularity;
+	multiboot_uint16_t winsize;
+	multiboot_uint16_t segmentA, segmentB;
+	multiboot_uint32_t realFctPtr;
+	multiboot_uint16_t pitch;
+
+	multiboot_uint16_t Xres, Yres;
+	multiboot_uint8_t  Wchar, Ychar, planes, bpp, banks;
+	multiboot_uint8_t  memory_model, bank_size, image_pages;
+	multiboot_uint8_t  reserved0;
+
+	multiboot_uint8_t  red_mask, red_position;
+	multiboot_uint8_t  green_mask, green_position;
+	multiboot_uint8_t  blue_mask, blue_position;
+	multiboot_uint8_t  rsv_mask, rsv_position;
+	multiboot_uint8_t  directcolor_attributes;
+
+	multiboot_uint32_t physbase;
+	multiboot_uint32_t reserved1;
+	multiboot_uint16_t reserved2;
+} __attribute__ ((packed)) vbe_info_t;
+
+
+
 typedef struct multiboot_mod_list multiboot_module_t;
 
 #endif          /* ! ASM_FILE */

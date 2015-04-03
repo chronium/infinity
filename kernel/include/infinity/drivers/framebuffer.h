@@ -14,18 +14,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+ 
+#ifndef INFINITY_DRIVERS_FRAMEBUFFER_H
+#define INFINITY_DRIVERS_FRAMEBUFFER_H
 
-#ifndef INFINITY_PORTIO_H
-#define INFINITY_PORTIO_H
+#include <mboot.h>
 
-#include <stdint.h>
-
-uint8_t inb(uint16_t port);
-uint16_t inw(uint16_t port);
-uint32_t inl(uint16_t port);
-void insl(uint16_t port, void *address, int count);
-void outb(uint16_t port, uint8_t val);
-void outw(uint16_t port, uint16_t val);
-void outl(uint16_t port, uint32_t val);
-
+struct fb_info {
+        uint32_t        res_x;
+        uint32_t        res_y;
+        uint16_t        pitch;
+        uint8_t         depth;
+        uint32_t        frame_buffer_length;
+        char *          frame_buffer;
+};
+ 
+void init_fb(vbe_info_t *info);
+void init_fbtty(struct fb_info *info);
 #endif

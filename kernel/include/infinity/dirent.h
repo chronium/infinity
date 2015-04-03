@@ -19,23 +19,24 @@
 #ifndef INFINITY_DIRENT_H
 #define INFINITY_DIRENT_H
 
+#include <stdint.h>
 #include <infinity/types.h>
 
 typedef struct {
-	int	dd_fd;
-	int	dd_loc;
-	int	dd_seek;
-	char *	dd_buf;
-	int	dd_len;
-	int	dd_size;
+    int     dd_fd;
+    int     dd_loc;
+    int     dd_seek;
+    char *  dd_buf;
+    int     dd_len;
+    int     dd_size;
 } DIR;
 
 struct dirent {
-	ino_t			d_ino;
-	off_t			d_off;
-	unsigned short int	d_reclen;
-	unsigned char		d_type;
-	char			d_name[256];
+    ino_t       d_ino;
+    off_t       d_off;
+    uint16_t    d_reclen;
+    uint8_t     d_type;
+    char        d_name[256];
 };
 
 DIR *opendir(const char *name);
