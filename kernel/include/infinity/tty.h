@@ -22,10 +22,14 @@
 
 struct tty {
     struct device * t_device;
+    void            (*writec) (struct tty *t, char c);
     struct tty *    next;
 };
 
 struct tty *create_tty();
 void set_tty(struct tty *t);
 struct tty *get_tty();
+void tty_writec(char c);
+char tty_readc();
+
 #endif

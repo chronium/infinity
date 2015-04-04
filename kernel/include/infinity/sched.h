@@ -22,22 +22,23 @@
 #include <infinity/types.h>
 #include <infinity/interrupt.h>
 #include <infinity/virtfs.h>
+#include <infinity/paging.h>
 
 #define BEGIN_CRITICAL_REGION   asm ("cli");
-#define END_CRITICAL_REGION             asm ("sti");
+#define END_CRITICAL_REGION     asm ("sti");
 
 struct process {
-    char            p_name[64];
-    pid_t           p_id;
-    uid_t           p_uid;
-    gid_t           p_gid;
-    struct fildes * p_file_descriptor_table;
-    struct process *next;
+    char                    p_name[64];
+    pid_t                   p_id;
+    uid_t                   p_uid;
+    gid_t                   p_gid;
+    struct page_directory * p_pdir;
+    struct fildes *         p_file_descriptor_table;
 };
 
 struct thread {
     pid_t           t_id;
-    struct regs *   t_regs;
+    void *          t_esp;
     struct process *t_proc;
     struct thread * next;
 };
@@ -54,6 +55,7 @@ void init_sched();
 void schedule_task(struct task *task);
 void thread_create(void *target, void *arg);
 void thread_yield();
+void process_create(const char *name);
 
 pid_t getpid();
 uid_t getuid();

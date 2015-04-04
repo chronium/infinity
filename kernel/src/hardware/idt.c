@@ -66,7 +66,7 @@ void init_idt()
 	outb(0xA1, 0x01);
 	outb(0x21, 0x0);
 	outb(0xA1, 0x0);
-
+    extern void pit_irq_handler();
 	idt_set_gate(0, (uint32_t)isr0, 0x08, 0x8E);
 	idt_set_gate(1, (uint32_t)isr1, 0x08, 0x8E);
 	idt_set_gate(2, (uint32_t)isr2, 0x08, 0x8E);
@@ -100,7 +100,7 @@ void init_idt()
 	idt_set_gate(30, (uint32_t)isr30, 0x08, 0x8E);
 	idt_set_gate(31, (uint32_t)isr31, 0x08, 0x8E);
 
-	idt_set_gate(32, (uint32_t)irq0, 0x08, 0x8E);
+	idt_set_gate(32, (uint32_t)pit_irq_handler, 0x08, 0x8E);
 	idt_set_gate(33, (uint32_t)irq1, 0x08, 0x8E);
 	idt_set_gate(33, (uint32_t)irq2, 0x08, 0x8E);
 	idt_set_gate(34, (uint32_t)irq3, 0x08, 0x8E);

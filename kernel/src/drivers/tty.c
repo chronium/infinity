@@ -5,6 +5,7 @@
 #include <infinity/tty.h>
 
 static int next_tty = 0;
+static struct tty *current_tty;
 static struct tty *tty_list = NULL;
 
 static struct tty *tty_add(struct tty *t);
@@ -23,12 +24,18 @@ struct tty *tty_create()
 
 void set_tty(struct tty *t)
 {
-    
+    current_tty = t;
 }
 
 struct tty *get_tty()
 {
-    return NULL;
+    return current_tty;
+}
+
+
+void tty_writec(char c)
+{
+    current_tty->writec(current_tty, c);
 }
 
 static struct tty *tty_add(struct tty *t)

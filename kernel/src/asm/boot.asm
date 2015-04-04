@@ -19,7 +19,7 @@ align 4
 	dd 0x00000000
 	dd 0
 	dd 0
-	dd 24
+	dd 0
 
 section .bootstrap_stack
 align 4

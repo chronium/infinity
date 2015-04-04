@@ -258,10 +258,11 @@ void sprintf(char *dest, const char *format, ...)
 void *memcpy(void *dest, void *src, size_t size)
 {
     asm volatile ("cld; rep movsb" : "+c" (size), "+S" (src), "+D" (dest) :: "memory");
+    return size;
 }
 
 void *memset(void *source, uint8_t b, size_t size)
 {
-    for (int i = 0; i < size; i++)
-        ((uint8_t *)source)[i] = b;
+	asm volatile ("cld; rep stosb" : "+c" (size), "+D" (source) : "a" (b) : "memory");
+    return size;
 }

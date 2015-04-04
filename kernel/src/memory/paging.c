@@ -25,19 +25,25 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
 //#include "page_fault.h"
 
-#define IDENTITY_MAP_END                0x8000000
+#define IDENTITY_MAP_END                0x4000000
 
+static inline void invlpg(void* m)
+{
+    /* Clobber memory to avoid optimizer re-ordering access before invlpg, which may cause nasty bugs. */
+    asm volatile ( "invlpg (%0)" : : "b"(m) : "memory" );
+}
 
 bool paging_enabled;
 
 struct page_directory *current_directory;
 
-static struct page_directory *kernel_directory;
+struct page_directory *kernel_directory;
 
 void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool write, bool user)
 {
@@ -49,7 +55,7 @@ void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool
 			((char *)dir->tables[i])[x] = 0;
 		dir->tables_physical[i] = (uint32_t)dir->tables[i] | 0x7;
 	}
-
+    
 	struct page *p = &dir->tables[i]->pages[vaddr % 1024];
 	if (p->present)
 		return;
@@ -57,6 +63,7 @@ void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool
 	p->present = 1;
 	p->rw = write;
 	p->user = user;
+    invlpg(vaddr);
 }
 
 

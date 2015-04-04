@@ -18,6 +18,7 @@ void init_fb(vbe_info_t *info)
     tag->res_x = info->Xres;
     tag->res_y = info->Yres;
     tag->pitch = info->pitch;
+    tag->depth = info->pitch / info->Xres;
     tag->frame_buffer = (char*)info->physbase;
     tag->frame_buffer_length = info->Yres * info->pitch;
     fb_dev = device_create(CHAR_DEVICE, "framebuffer");

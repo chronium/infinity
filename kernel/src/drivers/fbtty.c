@@ -34,6 +34,7 @@ static void fb_reset(struct fb_tty_info *info);
 static void fb_newline(struct fb_tty_info *info);
 static void fb_scroll(struct fb_tty_info *info);
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr);
+static void fb_tty_recieve(struct tty *t, char c);
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg);
 
 void init_fbtty(struct fb_info *info)
@@ -46,7 +47,9 @@ void init_fbtty(struct fb_info *info)
     struct tty *fb_tty = tty_create();
     fb_tty->t_device->dev_tag = t_info;
     fb_tty->t_device->write = fb_tty_write;
+    fb_tty->writec = fb_tty_recieve;
     fb_reset(t_info);
+    set_tty(fb_tty);
     klog_output(fb_tty->t_device);
 }
 
@@ -241,9 +244,17 @@ static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr)
     return len;
 }
 
+/*
+ * Recieve a character from stdin
+ */
+static void fb_tty_recieve(struct tty *t, char c)
+{
+    fb_putc(t->t_device->dev_tag, c);
+}
+
 static inline void fb_set_pixel(struct fb_info *info, int x, int y, int c)
 {
-    int pos = x * 3 + y * info->pitch;
+    int pos = x * info->depth + y * info->pitch;
     char *screen = (char*)info->frame_buffer;
     screen[pos] = c & 255;
     screen[pos + 1] = (c >> 8) & 255;

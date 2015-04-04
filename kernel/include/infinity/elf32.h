@@ -84,6 +84,16 @@ struct elf32_shdr {
     elf32_word_t    sh_entsize;
 };
 
+struct elf32_phdr {
+	elf32_word_t	p_type;
+	elf32_off_t 	p_offset;
+	elf32_addr_t	p_vaddr;
+	elf32_addr_t	p_paddr;
+	elf32_word_t	p_filesz;
+	elf32_word_t	p_memsz;
+	elf32_word_t	p_flags;
+	elf32_word_t	p_align;
+};
 
 struct elf32_rel {
     elf32_addr_t    r_offset;
@@ -102,6 +112,14 @@ enum stt_bindings {
     STB_WEAK                = 2     // Weak, (ie. __attribute__((weak)))
 };
 
+enum pt_types {
+    PT_NULL         = 0,
+    PT_LOAD         = 1,
+    PT_DYNAMIC      = 2,
+    PT_INTERP       = 3,
+    PT_NOTE         = 4,
+    PT_SHLIB        = 5,
+};
 
 enum sht_types {
     SHT_NULL        = 0,    // Null section
@@ -154,12 +172,15 @@ static inline struct elf32_shdr *elf_sheader(struct elf32_ehdr *hdr)
     return (struct elf32_shdr *)((int)hdr + hdr->e_shoff);
 }
 
+static inline struct elf32_phdr *elf_pheader(struct elf32_ehdr *hdr)
+{
+    return (struct elf32_phdr *)((int)hdr + hdr->e_phoff);
+}
+
 static inline struct elf32_shdr *elf_section(struct elf32_ehdr *hdr, int idx)
 {
     return &elf_sheader(hdr)[idx];
 }
-
-
 
 static inline char *elf_str_table(struct elf32_ehdr *hdr)
 {

@@ -20,12 +20,11 @@
  * Provides functions for scheduling threads and tcontext switching
  */
 
+#include <infinity/common.h>
 #include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/sched.h>
-
-
-extern struct regs *pit_irq_regs;
+#include <infinity/paging.h>
 
 struct thread *thread_list = NULL;
 struct thread *current_thread = NULL;
@@ -37,31 +36,27 @@ void init_sched()
 {
 }
 
-/*
- * Performs a context switch, switching to a new thread
- * @param regs			The processor registers
- */
-void perform_context_switch(struct regs *state)
+
+int perform_context_switch(int esp)
 {
-	BEGIN_CRITICAL_REGION;
+    BEGIN_CRITICAL_REGION;
 
-	int orgds = state->ds;
-	int orgcs = state->cs;
-	int orgss = state->ss;
+    if (thread_list) {
+        if (current_thread) {
+            current_thread->t_esp = esp;
+        }
+        
+        current_thread = thread_get_next();
+        
+        if(current_thread->t_proc) {
+            switch_page_directory(current_thread->t_proc->p_pdir);
+        }
+        return current_thread->t_esp;
+    }
 
-	if (thread_list) {
-		if (current_thread)
-			memcpy(current_thread->t_regs, state, sizeof(struct regs));
-
-		current_thread = thread_get_next();
-		memcpy(state, current_thread->t_regs, sizeof(struct regs));
-	}
-
-	state->ds = orgds;
-	state->cs = orgcs;
-	state->ss = orgss;
-
-	END_CRITICAL_REGION;
+    END_CRITICAL_REGION;
+    
+    return esp;
 }
 
 /*
@@ -69,18 +64,18 @@ void perform_context_switch(struct regs *state)
  */
 static void thread_alloc(struct thread *new_thread)
 {
-	new_thread->next = NULL;
+    new_thread->next = NULL;
 
-	struct thread *t = thread_list;
+    struct thread *t = thread_list;
 
-	if (thread_list) {
-		struct thread *i = thread_list;
-		while (i->next)
-			i = i->next;
-		i->next = new_thread;
-	} else {
-		thread_list = new_thread;
-	}
+    if (thread_list) {
+        struct thread *i = thread_list;
+        while (i->next)
+            i = i->next;
+        i->next = new_thread;
+    } else {
+        thread_list = new_thread;
+    }
 }
 
 
@@ -89,40 +84,80 @@ static void thread_alloc(struct thread *new_thread)
  */
 static struct thread *thread_get_next()
 {
-	struct thread *i = thread_list;
+    struct thread *i = thread_list;
 
-	while (i) {
-		if (i == current_thread) {
-			if (i->next)
-				return i->next;
-			else
-				return thread_list;
-		}
-		i = i->next;
-	}
-	return thread_list;
+    while (i) {
+        if (i == current_thread) {
+            if (i->next)
+                return i->next;
+            else
+                return thread_list;
+        }
+        i = i->next;
+    }
+    return thread_list;
 }
 
 /*
  * Creates a thread
- * @param target		The entry point
- * @param args			Arguments to be passed to the entry point
+ * @param target        The entry point
+ * @param args          Arguments to be passed to the entry point
  */
 void thread_create(void *target, void *arg)
 {
-	BEGIN_CRITICAL_REGION;
+    BEGIN_CRITICAL_REGION;
 
-	struct thread *t = (struct thread *)kalloc(sizeof(struct thread));
-	t->t_regs = kalloc(sizeof(struct regs));
-	memcpy(t->t_regs, pit_irq_regs, sizeof(struct regs));
-	t->t_regs->eip = target;
-	void *stack = kalloc(0xFFFFF);
-	t->t_regs->esp = stack + 0xFFFFF;
-	t->t_regs->ebp = stack + 0xFFFFF;
+    struct thread *t = (struct thread *)kalloc(sizeof(struct thread));
 
-	thread_alloc(t);
+    int *stack = kalloc(0x20000) + 0x20000;
+    
+    *--stack = arg;
+    *--stack = 0x202;
+    *--stack = 0x08; 
+    *--stack = (int)target;
+    *--stack = 0;
+    *--stack = 0;
+    *--stack = 0;
+    *--stack = 0;  
+    *--stack = 0;
+    *--stack = 0;
+    *--stack = 0;
+    *--stack = 0;
+    *--stack = 0x10;
+    *--stack = 0x10;
+    *--stack = 0x10;
+    *--stack = 0x10;
+    
+    t->t_esp = stack;
+    
+    thread_alloc(t);
+    
+    END_CRITICAL_REGION;
+    
+    thread_yield();
+}
 
-	END_CRITICAL_REGION;
+/*
+ * Changes the current threads process
+ * @param name  The name of the process
+ */
+void process_create(const char *name)
+{
+    BEGIN_CRITICAL_REGION;
+    
+    struct process *proc = (struct process*)kalloc(sizeof(struct process));
+    proc->p_id = current_thread->t_id;
+    strcpy(proc->p_name, name);
+    extern struct page_directory *kernel_directory;
+    struct page_directory *pdir = (struct page_directory*)malloc_pa(sizeof(struct page_directory));
+    memcpy(pdir, kernel_directory, sizeof(struct page_directory));
+
+    proc->p_pdir = pdir;
+    current_thread->t_proc = proc;
+    
+    END_CRITICAL_REGION;
+    
+    thread_yield();
 }
 
 /*
@@ -130,5 +165,5 @@ void thread_create(void *target, void *arg)
  */
 void thread_yield()
 {
-	asm ("hlt");
+    asm ("hlt");
 }

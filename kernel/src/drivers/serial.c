@@ -22,6 +22,7 @@
 
 #include <stddef.h>
 #include <infinity/device.h>
+#include <infinity/portio.h>
 #include <infinity/drivers/serial.h>
 
 #define COM_PORT                        0x3F8

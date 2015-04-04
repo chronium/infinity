@@ -39,7 +39,6 @@ static int remove_from_file_table(struct file *file);
  */
 struct file *fopen(const char *path, int oflags)
 {
-	printk(KERN_INFO "DEBUG: Open %s\n", path);
 	struct file *new_file = (struct file *)kalloc(sizeof(struct file));
 	memset(new_file, 0, sizeof(struct file));
 	int res = virtfs_open(new_file, path, oflags);
@@ -47,7 +46,6 @@ struct file *fopen(const char *path, int oflags)
 		add_to_file_table(new_file);
 		return new_file;
 	}
-	printk(KERN_ERR "ERROR: virtfs_open() failed!\n");
 
 	kfree(new_file);
 

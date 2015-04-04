@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <infinity/kernel.h>
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
 
@@ -31,7 +32,7 @@ extern struct page_directory *current_directory;
 static struct page_frame *free_frame_stack = NULL;
 static struct page_frame *allocated_frame_stack = NULL;
 
-static void *phys_free_address = 0x8000000;
+static void *phys_free_address = 0x4000000;
 
 static struct page_frame *pop_free_frame();
 
@@ -51,6 +52,7 @@ void *frame_alloc(void *vaddr, int flags)
 		phys_free_address += 0x1000;
 	}
 	frame->ref_count = 1;
+    printk(KERN_INFO "Map %x to %x\n", vaddr, frame->phys_addr);
 	page_alloc(current_directory, vaddr, frame->phys_addr, flags & 1, (flags & 2) >> 1);
 	frame->virt_addr = (uint32_t)vaddr;
 	frame->last_frame = allocated_frame_stack;

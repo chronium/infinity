@@ -94,9 +94,13 @@ isr_common_stub:
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-
+    
+	push esp
+    
 	call handle_isr
 
+	add esp, 4	
+    
 	pop eax        ; reload the original data segment descriptor
 	mov ds, ax
 	mov es, ax

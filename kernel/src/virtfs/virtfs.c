@@ -111,7 +111,6 @@ int virtfs_read(struct file *f, char *buf, off_t off, size_t len)
 		f->f_pos += bytes_read;
 		return bytes_read;
 	}
-	printk(KERN_INFO "Read %d failed (Flags %d)\n", f->f_ino, f->f_flags);
 	return -1;
 }
 
@@ -123,10 +122,8 @@ int virtfs_read(struct file *f, char *buf, off_t off, size_t len)
  */
 int virtfs_readdir(struct file *f, int d, struct dirent *dent)
 {
-	printk(KERN_INFO "Read dir with flags of %d\n", f->f_flags);
 	if (f->f_flags & F_SUPPORT_READ && !(f->f_flags & F_CLOSED))
 		return f->f_fs->readdir(f->f_dev, f->f_ino, d, dent);
-	printk(KERN_WARN "readdir() failed\n");
 	return -1;
 }
 /*
@@ -137,7 +134,7 @@ int virtfs_readdir(struct file *f, int d, struct dirent *dent)
  */
 int virtfs_mount(struct device *dev, struct filesystem *fs, const char *path)
 {
-	printk(KERN_INFO "DEBUG: Mounting device '%s' using filesystem '%s' to %s\n", dev->dev_name, fs->fs_name, path);
+	printk(KERN_DEBUG "DEBUG: Mounting device '%s' using filesystem '%s' to %s\n", dev->dev_name, fs->fs_name, path);
 
 	char *rpath = NULL;
 	struct mntpoint *mnt = virtfs_find_mount(path, &rpath);

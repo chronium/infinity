@@ -248,7 +248,6 @@ static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *den
     device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
     device_read(dev, directory, ifs_get_address(dev, entry.data_index), 1024);
 
-    printk(KERN_INFO "[DEBUG] Dirent is %d\n", directory[d]);
     if (directory[d] == -1)
         return -1;
     device_read(dev, &entry, ifs_get_address(dev, directory[d]), sizeof(struct ifs_entry));

@@ -37,6 +37,7 @@ struct regs {
     uint32_t    ss;
 };
 
+
 typedef void (*inthandler_t)(struct regs *registers);
 
 int request_isr(int inum, inthandler_t handler);

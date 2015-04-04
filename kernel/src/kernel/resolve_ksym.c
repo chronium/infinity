@@ -61,7 +61,6 @@ void parse_symbol_file()
 static void ksym_parse(const char *line)
 {
     char address[9];
-    printk(KERN_INFO "%s\n", line);
     memset(address, 0, 9);
     memcpy(address, line, 8);
     caddr_t addr = strtol(address, 16);

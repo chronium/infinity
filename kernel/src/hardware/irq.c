@@ -27,7 +27,7 @@
 #include <infinity/portio.h>
 #include <infinity/interrupt.h>
 
-inthandler_t irq_handlers[16];
+inthandler_t irq_handlers[16] = {0};
 
 /*
  * Request an IRQ handler, returns 0 if the specified
@@ -62,7 +62,6 @@ int free_irq(int inum)
 void handle_irq(struct regs *registers)
 {
 	int i = registers->interrupt & 0xFF;
-
 	if (i >= 40)
 		outb(0xA0, 0x20);
 	if (irq_handlers[i - 32])

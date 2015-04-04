@@ -29,13 +29,16 @@
 #include <infinity/fcntl.h>
 #include <infinity/virtfs.h>
 #include <infinity/elf32.h>
+#include <infinity/memmanager.h>
 
+static void elf_load_phdrs(void *elf);
 static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx);
 static int elf_alloc_sections(struct elf32_ehdr *hdr);
 static int elf_move_symbols(struct elf32_ehdr *hdr);
 static int elf_relocate(struct elf32_ehdr *hdr);
 static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct elf32_shdr *reltab);
 static int elf_get_strindex(struct elf32_ehdr *hdr, const char *sym);
+
 
 /*
  * Opens up an ELF32 executable and relocates it,
@@ -52,9 +55,45 @@ void *elf_open(const char *path)
     elf_alloc_sections(exe);
     elf_relocate(exe);
 
+    //printk(KERN_INFO "Hash returned %x\n", hash(exe, elf->f_len));
+    fclose(elf);
+    return exe;
+}
+
+/*
+ * Opens up an ELF32 executable, loading it 
+ * into virtual memory
+ */
+void *elf_open_v(const char *path)
+{
+    struct file *elf = fopen(path, O_RDWR);
+    void *exe = kalloc(elf->f_len);
+
+    virtfs_read(elf, exe, 0, elf->f_len);
+    
+    elf_load_phdrs(exe);
+
     fclose(elf);
 
     return exe;
+}
+
+static void elf_load_phdrs(void *elf)
+{
+    struct elf32_ehdr *hdr = (struct elf32_ehdr *)elf;
+    struct elf32_phdr *phdr = elf_pheader(hdr);
+    
+    for(int i = 0; i < hdr->e_phnum; i++) {
+        struct elf32_phdr *p = &phdr[i];
+        
+        if(p->p_type == PT_LOAD) {
+            for(int i = 0; i < p->p_memsz; i += 0x1000) {
+                printk(KERN_INFO "Virt alloc\n");
+                frame_alloc(p->p_vaddr + i, PAGE_RW | PAGE_USER);
+            }
+            memcpy((void*)p->p_vaddr, (void*)(elf + p->p_offset), p->p_filesz);
+        }
+    }
 }
 
 /*
@@ -104,7 +143,6 @@ static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx)
 
     int symaddr = (int)hdr + symtab->sh_offset;
     struct elf32_sym *symbol = &((struct elf32_sym *)symaddr)[idx];
-
     if (symbol->st_shndx == SHN_ABS) {
         return symbol->st_value;
     } else if (symbol->st_shndx == SHN_UNDEF) {
@@ -171,6 +209,7 @@ static int elf_alloc_sections(struct elf32_ehdr *hdr)
     return 0;
 }
 
+
 /*
  * Begins relocating an ELF file
  */
@@ -186,8 +225,8 @@ static int elf_relocate(struct elf32_ehdr *hdr)
                 struct elf32_rel *reltab = &((struct elf32_rel *)((int)hdr + section->sh_offset))[j];
                 int result = elf_do_reloc(hdr, reltab, section);
 
-                if (result)
-                    printk(KERN_ALERT "We have failed\n");
+                if (result == -1)
+                    printk(KERN_WARN "Could not relocate\n");
             }
         }
     }
@@ -207,8 +246,10 @@ static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct el
 
     if (ELF32_R_SYM(rel->r_info) != SHN_UNDEF) {
         symval = elf_get_symval(hdr, reltab->sh_link, ELF32_R_SYM(rel->r_info));
-        if (symval == 0)
+        struct elf32_sym *s = ELF32_R_SYM(rel->r_info);
+        if (symval == 0) {
             return -1;
+        }
     }
 
     switch (ELF32_R_TYPE(rel->r_info)) {
@@ -221,7 +262,7 @@ static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct el
         *ref = DO_386_PC32(symval, *ref, (int)ref);
         break;
     default:
-        printk(KERN_WARN "[WARN] Unsupported relocation type (%d).\n", ELF32_R_TYPE(rel->r_info));
+        printk(KERN_WARN "WARN: Unsupported relocation type (%d)\n", ELF32_R_TYPE(rel->r_info));
         return -1;
     }
     return symval;

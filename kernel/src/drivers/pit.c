@@ -56,6 +56,5 @@ static void pit_irq(struct regs *state)
     extern void dequeue_next_task();
     dequeue_next_task();
 
-    perform_context_switch(state);
     pit_tick++;
 }

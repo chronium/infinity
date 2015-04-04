@@ -5,7 +5,7 @@ CFLAGS = -c -O -ffreestanding -nostdlib -std=gnu99 -I ../../include
 LD = i686-elf-gcc
 LDFLAGS = -O2 -gcc
 
-TARGET = keyboard.ko
+TARGET = ../../bin/initrd/lib/infinity/modules/keyboard.ko
 
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c) $(shell find ./src -name "*.c")) $(patsubst %.asm, %.o, $(wildcard *.asm) $(shell find ./src -name "*.asm"))
 

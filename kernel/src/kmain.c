@@ -74,11 +74,11 @@ void kmain(multiboot_info_t *mbootinfo)
  */
 static void kthread_main()
 {
-    struct file *test = fopen("/hello.txt", O_RDWR);
-
-
+    process_create("idle");
     printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
     init_boot_modules();
+    
     printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
     while (1) asm ("hlt"); // We are done. Stay here
 }
+
