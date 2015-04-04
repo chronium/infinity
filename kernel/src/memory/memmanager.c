@@ -31,7 +31,7 @@ extern struct page_directory *current_directory;
 static struct page_frame *free_frame_stack = NULL;
 static struct page_frame *allocated_frame_stack = NULL;
 
-static void *phys_free_address = 0x1E84800;
+static void *phys_free_address = 0x8000000;
 
 static struct page_frame *pop_free_frame();
 

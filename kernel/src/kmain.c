@@ -51,6 +51,7 @@ void kmain(multiboot_info_t *mbootinfo)
     init_kheap(heap_start);
     init_textscreen();
     init_serial();
+    init_paging();
     klog(1);
     klog_output(serial_dev1);
     init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
@@ -60,7 +61,6 @@ void kmain(multiboot_info_t *mbootinfo)
     init_idt();
     init_devfs();
     init_pit(50);
-    // init_paging();
     init_sched();
 
     thread_create(kthread_main, NULL);

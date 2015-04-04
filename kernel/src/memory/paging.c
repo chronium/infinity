@@ -30,7 +30,7 @@
 #include <infinity/memmanager.h>
 //#include "page_fault.h"
 
-#define IDENTITY_MAP_END                0x1E84800
+#define IDENTITY_MAP_END                0x8000000
 
 
 bool paging_enabled;

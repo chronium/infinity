@@ -3,6 +3,7 @@
 #include <infinity/heap.h>
 #include <infinity/kernel.h>
 #include <infinity/device.h>
+#include <infinity/paging.h>
 #include <infinity/drivers/serial.h>
 #include <infinity/drivers/framebuffer.h>
 
@@ -23,6 +24,11 @@ void init_fb(vbe_info_t *info)
     fb_dev->write = fb_write;
     fb_dev->read = fb_read;
     fb_dev->dev_tag = tag;
+    extern struct page_directory *current_directory;
+    for(int i = 0; i < tag->frame_buffer_length; i += 0x1000) {
+        page_alloc(current_directory, tag->frame_buffer + i, tag->frame_buffer + i, 1, 1);
+    }
+    
     init_fbtty(tag);
 }
  
