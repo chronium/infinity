@@ -25,6 +25,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <infinity/kernel.h>
+#include <infinity/paging.h>
 #include <infinity/heap.h>
 
 #define MAGIC           0xCB010261
@@ -68,6 +69,9 @@ void *kalloc(size_t size)
 
 	new_mb->next_block = used_top;
 	used_top = new_mb;
+    
+    memset(new_mb->memory, 0, size);
+    
 	return new_mb->memory;
 }
 

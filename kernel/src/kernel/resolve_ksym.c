@@ -82,6 +82,7 @@ static void ksym_read_line(struct file *f, char *buf)
         if (dat) buf[i++] = dat;
         virtfs_read(f, &dat, 0, 1);
     }
+    
     buf[i] = 0;
 }
 

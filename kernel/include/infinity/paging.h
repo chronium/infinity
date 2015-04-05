@@ -51,4 +51,8 @@ void page_remap(struct page_directory *dir, uint32_t vaddr, uint32_t paddr);
 void page_free(struct page_directory *dir, uint32_t vaddr);
 struct page_directory *create_new_page_directory();
 
+static inline void invlpg(void *m)
+{
+    asm volatile ( "invlpg (%0)" : : "b"(m) : "memory" );
+}
 #endif

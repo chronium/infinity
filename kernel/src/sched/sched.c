@@ -17,7 +17,7 @@
 
 /*
  * sched.c
- * Provides functions for scheduling threads and tcontext switching
+ * Provides functions for scheduling threads and context switching
  */
 
 #include <infinity/common.h>
@@ -40,7 +40,7 @@ void init_sched()
 int perform_context_switch(int esp)
 {
     BEGIN_CRITICAL_REGION;
-
+    
     if (thread_list) {
         if (current_thread) {
             current_thread->t_esp = esp;

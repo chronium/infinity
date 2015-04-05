@@ -54,15 +54,15 @@ void kmain(multiboot_info_t *mbootinfo)
     init_paging();
     klog(1);
     klog_output(serial_dev1);
-    init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
     init_ramdisk(module_start, 0);
+    init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
     parse_symbol_file();
     init_gdt();
     init_idt();
     init_devfs();
     init_pit(50);
     init_sched();
-
+    
     thread_create(kthread_main, NULL);
 
     while (1) ; // Wait for the scheduler to take over

@@ -29,6 +29,7 @@
 #include <infinity/fcntl.h>
 #include <infinity/virtfs.h>
 #include <infinity/elf32.h>
+#include <infinity/paging.h>
 #include <infinity/memmanager.h>
 
 static void elf_load_phdrs(void *elf);
@@ -40,6 +41,15 @@ static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct el
 static int elf_get_strindex(struct elf32_ehdr *hdr, const char *sym);
 
 
+static inline int hash(void *f, int len)
+{
+    int ret = len;
+    for(int i = 0; i < len; i++) {
+        ret = ret ^ *((char*)f + i);
+    }
+    return ret;
+}
+
 /*
  * Opens up an ELF32 executable and relocates it,
  * returning a pointer the ELF image
@@ -49,13 +59,12 @@ void *elf_open(const char *path)
 {
     struct file *elf = fopen(path, O_RDWR);
     void *exe = kalloc(elf->f_len);
-
+    
     virtfs_read(elf, exe, 0, elf->f_len);
     //elf_move_symbols(exe);
     elf_alloc_sections(exe);
     elf_relocate(exe);
 
-    //printk(KERN_INFO "Hash returned %x\n", hash(exe, elf->f_len));
     fclose(elf);
     return exe;
 }
@@ -120,7 +129,8 @@ void *elf_sym(const void *elf, const char *sym)
             }
         }
     }
-    return 1;
+    printk(KERN_ERR "ERROR: Could not resolve symbol '%s'\n", sym);
+    return -1;
 }
 
 /*
@@ -152,6 +162,7 @@ static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx)
         void *target = resolve_ksym(name);
 
         if (target == NULL) {
+            printk(KERN_ERR "ERROR: Could not resolve kernel symbol %s", name);
             if (ELF32_ST_BIND(symbol->st_info) & STB_WEAK)
                 return 0;
             else

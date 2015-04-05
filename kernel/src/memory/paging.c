@@ -33,11 +33,7 @@
 
 #define IDENTITY_MAP_END                0x4000000
 
-static inline void invlpg(void* m)
-{
-    /* Clobber memory to avoid optimizer re-ordering access before invlpg, which may cause nasty bugs. */
-    asm volatile ( "invlpg (%0)" : : "b"(m) : "memory" );
-}
+
 
 bool paging_enabled;
 
@@ -63,7 +59,6 @@ void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool
 	p->present = 1;
 	p->rw = write;
 	p->user = user;
-    invlpg(vaddr);
 }
 
 
@@ -113,6 +108,7 @@ void init_paging()
 		page_alloc(kernel_directory, ptr, ptr, 0, 0);
 
 	enable_paging();
+        
 }
 
 /*
