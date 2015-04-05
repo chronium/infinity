@@ -61,10 +61,12 @@ int free_isr(int inum)
 void handle_isr(struct regs *registers)
 {
 	int i = registers->interrupt & 0xFF;
-    printk(KERN_INFO "ISR %d (errcode %d)\n", i, registers->eip);
-    while(1);
-    return;
+
 	if (isr_handlers[i])
 		isr_handlers[i](registers);
+    else 
+    {
+        panic("%d", i);
+    }
 	outb(0x20, 0x20);
 }

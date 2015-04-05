@@ -40,16 +40,6 @@ static int elf_relocate(struct elf32_ehdr *hdr);
 static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct elf32_shdr *reltab);
 static int elf_get_strindex(struct elf32_ehdr *hdr, const char *sym);
 
-
-static inline int hash(void *f, int len)
-{
-    int ret = len;
-    for(int i = 0; i < len; i++) {
-        ret = ret ^ *((char*)f + i);
-    }
-    return ret;
-}
-
 /*
  * Opens up an ELF32 executable and relocates it,
  * returning a pointer the ELF image
@@ -61,7 +51,6 @@ void *elf_open(const char *path)
     void *exe = kalloc(elf->f_len);
     
     virtfs_read(elf, exe, 0, elf->f_len);
-    //elf_move_symbols(exe);
     elf_alloc_sections(exe);
     elf_relocate(exe);
 
@@ -87,6 +76,10 @@ void *elf_open_v(const char *path)
     return exe;
 }
 
+/*
+ * Load the data defined in the ELF's program headers 
+ * and map to virtual memory
+ */
 static void elf_load_phdrs(void *elf)
 {
     struct elf32_ehdr *hdr = (struct elf32_ehdr *)elf;
@@ -97,7 +90,6 @@ static void elf_load_phdrs(void *elf)
         
         if(p->p_type == PT_LOAD) {
             for(int i = 0; i < p->p_memsz; i += 0x1000) {
-                printk(KERN_INFO "Virt alloc\n");
                 frame_alloc(p->p_vaddr + i, PAGE_RW | PAGE_USER);
             }
             memcpy((void*)p->p_vaddr, (void*)(elf + p->p_offset), p->p_filesz);

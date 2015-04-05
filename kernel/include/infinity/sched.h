@@ -32,8 +32,9 @@ struct process {
     pid_t                   p_id;
     uid_t                   p_uid;
     gid_t                   p_gid;
+    int                     p_nextfd;
     struct page_directory * p_pdir;
-    struct fildes *         p_file_descriptor_table;
+    struct fildes *         p_fildes_table;
 };
 
 struct thread {

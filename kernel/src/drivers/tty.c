@@ -13,6 +13,7 @@ static struct tty *tty_add(struct tty *t);
 struct tty *tty_create()
 {
     char name[64];
+    memset(name, 0, 64);
     sprintf(name, "tty%d", next_tty++);
     struct device *ttyd = device_create(CHAR_DEVICE, name);
     struct tty *ret = (struct tty*)kalloc(sizeof(struct tty));

@@ -23,6 +23,7 @@
 
 #include <stddef.h>
 #include <infinity/heap.h>
+#include <infinity/common.h>
 #include <infinity/device.h>
 
 // Linked list containing all registered devices
@@ -38,8 +39,7 @@ static int next_devid = 0; // Unique identifier for devices
 struct device *device_create(devtype_t type, const char *name)
 {
     struct device *new_dev = (struct device *)kalloc(sizeof(struct device));// Create a new device
-
-    new_dev->dev_name = name;
+    strcpy(new_dev->dev_name, name);
     new_dev->dev_type = type;
     new_dev->next = NULL;
     new_dev->dev_id = next_devid++;

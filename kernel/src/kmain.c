@@ -33,6 +33,7 @@
 #include <infinity/sched.h>
 #include <infinity/sync.h>
 #include <infinity/module.h>
+#include <infinity/syscalls.h>
 #include <infinity/drivers/pit.h>
 #include <infinity/drivers/textscreen.h>
 #include <infinity/drivers/serial.h>
@@ -62,7 +63,7 @@ void kmain(multiboot_info_t *mbootinfo)
     init_devfs();
     init_pit(50);
     init_sched();
-    
+    init_syscalls();
     thread_create(kthread_main, NULL);
 
     while (1) ; // Wait for the scheduler to take over
@@ -77,7 +78,8 @@ static void kthread_main()
     process_create("idle");
     printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
     init_boot_modules();
-    
+    elf_open_v("/bin/test");
+    int r = ((int (*)(void)) 0x8048099)();;
     printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
     while (1) asm ("hlt"); // We are done. Stay here
 }

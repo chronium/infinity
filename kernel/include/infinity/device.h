@@ -28,7 +28,7 @@ typedef enum devtype {
 
 
 struct device {
-    char *          dev_name;
+    char            dev_name[64];
     devtype_t       dev_type;
     int             dev_id;
     void *          dev_tag;

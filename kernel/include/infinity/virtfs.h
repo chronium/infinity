@@ -37,6 +37,7 @@ struct file {
     uint64_t            f_pos;
     uint64_t            f_len;
     uint32_t            f_flags;
+    uint32_t            f_refs;
     spinlock_t          f_lock;
     struct device *     f_dev;
     struct filesystem * f_fs;

@@ -5,12 +5,12 @@ isr0:
 	push byte 0         ; Push the interrupt number (0)
 	jmp isr_common_stub ; Go to our common handler.
 
-	%macro ISR_NOERRCODE 1  ; define a macro, taking one parameter
+%macro ISR_NOERRCODE 1  ; define a macro, taking one parameter
 	[GLOBAL isr%1]        ; %1 accesses the first parameter.
 	isr%1:
 	cli
-	push byte 0
-	push byte %1
+	push  0
+	push  %1
 	jmp isr_common_stub
 %endmacro
 
@@ -94,18 +94,18 @@ isr_common_stub:
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-    
+
 	push esp
-    
+	
 	call handle_isr
 
 	add esp, 4	
-    
-	pop eax        ; reload the original data segment descriptor
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
+	
+	pop ebx        ; reload the original data segment descriptor
+	mov ds, bx
+	mov es, bx
+	mov fs, bx
+	mov gs, bx
 
 	popa                     ; Pops edi,esi,ebp...
 	add esp, 8     ; Cleans up the pushed error code and pushed ISR number
