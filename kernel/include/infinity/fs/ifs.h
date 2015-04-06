@@ -34,7 +34,8 @@ typedef enum ifs_filetype {
     IFS_SOCKET = 3,
     IFS_PIPE = 4,
     IFS_BLOCK_DEVICE = 6,
-    IFS_CHAR_DEVICE = 7
+    IFS_CHAR_DEVICE = 7,
+	IFS_REG_FILE = 8,
 } ifs_filetype_t;
 
 struct ifs_volume_hdr {

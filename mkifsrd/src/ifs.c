@@ -359,7 +359,7 @@ int ifs_add_file(const char *path, const void *file, size_t size)
 	struct ifs_entry dir;
 
 	dir.umask = 484;
-	dir.file_type = IFS_DIRECTORY;
+	dir.file_type = IFS_REG_FILE;
 	dir.data_index = d_block;
 	dir.file_size = size;
 	ifs_get_basename(dir.file_name, path);

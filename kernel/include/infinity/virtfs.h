@@ -39,8 +39,12 @@ struct file {
     uint32_t            f_flags;
     uint32_t            f_refs;
     spinlock_t          f_lock;
+    void    *           f_tag;
     struct device *     f_dev;
     struct filesystem * f_fs;
+    int                 (*write)    (struct file *fd, char *buf, off_t off, size_t len);
+    int                 (*read)     (struct file *fd, const char *buf, off_t off, size_t len);
+    int                 (*unlink)   (struct file *fd);
     struct file *       next;
 };
 
@@ -79,19 +83,20 @@ struct filesystem {
 
 struct file *fopen(const char *path, int oflag);
 int fclose(struct file *f);
+int fread(struct file *fd, char *buf, off_t off, size_t len);
+int fwrite(struct file *fd, const char *buf, off_t off, size_t len);
+int readdir(struct file *f, int d, struct dirent *dent);
+int unlink(struct file *fd);
+int fpipe(struct file *f[]);
 
 int virtfs_init(struct device *dev, struct filesystem *initrd);
 struct mntpoint *virtfs_find_mount(const char *org_path, char **rel_path);
-
 int virtfs_mount(struct device *dev, struct filesystem *fs, const char *path);
-int virtfs_open(struct file *fd, const char *path, int oflag);
-int virtfs_delete(struct file *fd);
-int virtfs_read(struct file *fd, char *buf, off_t off, size_t len);
-int virtfs_write(struct file *fd, const char *buf, off_t off, size_t len);
-int virtfs_readdir(struct file *f, int d, struct dirent *dent);
-int virtfs_mkdir(const char *path);
+
+int mkdir(const char *path);
 int register_fs(struct filesystem *fs);
 void init_ramdisk(void *memory, int size);
+void add_to_file_table(struct file *nfile);
 
 static inline char *virtfs_remove_leading_slash(const char *path)
 {

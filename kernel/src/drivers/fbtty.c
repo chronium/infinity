@@ -3,6 +3,7 @@
 #include <infinity/tty.h>
 #include <infinity/common.h>
 #include <infinity/device.h>
+#include <infinity/fcntl.h>
 #include <infinity/drivers/framebuffer.h>
 #include "fb_font.h"
 
@@ -15,12 +16,17 @@ struct fb_tty_info {
     int                 height;
     int                 fg_color;
     int                 bg_color;
+    int                 transparency_index;
     char                underline;
     char                hidden;
     char                bright;
     char                escaped;
     char                escape_buf[64];
     char                escape_pos;
+    char                input_buf[128];
+    char                input_pos;
+    char *              z_buf;
+    int *               wallpaper;
     struct fb_info *    f_info;
 };
 const int fb_pallete[] = {0x000000, 0xAA0000, 0x00AA00, 0xAA5500, 0x0000AA, 0xAA00AA, 0x00AAAA, 0xAAAAAA};
@@ -34,7 +40,9 @@ static void fb_reset(struct fb_tty_info *info);
 static void fb_newline(struct fb_tty_info *info);
 static void fb_scroll(struct fb_tty_info *info);
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr);
+static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr);
 static void fb_tty_recieve(struct tty *t, char c);
+static char fb_tty_getc(struct fb_tty_info *info);
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg);
 
 void init_fbtty(struct fb_info *info)
@@ -47,10 +55,17 @@ void init_fbtty(struct fb_info *info)
     struct tty *fb_tty = tty_create();
     fb_tty->t_device->dev_tag = t_info;
     fb_tty->t_device->write = fb_tty_write;
+    fb_tty->t_device->read = fb_tty_read;
     fb_tty->writec = fb_tty_recieve;
     fb_reset(t_info);
     set_tty(fb_tty);
     klog_output(fb_tty->t_device);
+    t_info->wallpaper = kalloc(800 * 600 * 4);
+    struct file *bg = fopen("/lib/infinity/avril.raster", O_RDWR);
+  
+    fread(bg, t_info->wallpaper, 0, 800 * 600 * 4);
+    
+    fclose(bg);
 }
 
 /*
@@ -142,13 +157,13 @@ static int fb_set_attr(struct fb_tty_info *info, int i, int *attributes)
 {
     int a = attributes[i];
     if(a >= 30 && a <= 37) {
-        int col = 37 - a;
+        int col = a - 30;
         info->fg_color = fb_pallete[col];
         if(info->bright)
             info->fg_color += 0x555555;
         return 1;
     } else if(a >= 40 && a <= 47) {
-        int col = 47 - a;
+        int col = a - 40;
         info->bg_color = fb_pallete[col];
         if(info->bright)
             info->bg_color += 0x555555;
@@ -207,7 +222,8 @@ static void fb_reset(struct fb_tty_info *info)
     info->underline = 0;
     info->hidden = 0;
     info->fg_color = fb_pallete[7];
-    info->bg_color = fb_pallete[0];
+    info->bg_color = 0xFF000000;
+    info->transparency_index = 0xFF000000;
 }
 
 /*
@@ -245,17 +261,56 @@ static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr)
 }
 
 /*
+ * Reads from the input buffer
+ */
+static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr)
+{
+    struct fb_tty_info *info = (struct fb_tty_info*)tag;
+    int i = 0;
+    while(i < len) {
+        char c = fb_tty_getc(info);
+        if(c == '\n') {
+            break;
+        } else if (c == '\b') {
+          buf[--i] = 0;  
+        } else {
+            buf[i++] = c;
+        }
+    }
+    buf[i++] = 0;
+    return len;
+}
+
+/*
  * Recieve a character from stdin
  */
 static void fb_tty_recieve(struct tty *t, char c)
 {
-    fb_putc(t->t_device->dev_tag, c);
+    struct fb_tty_info *info = (struct fb_tty_info*)t->t_device->dev_tag;
+    if(info->input_pos < 128) {
+        fb_putc(info, c);
+        info->input_buf[info->input_pos++] = c;
+    }
 }
 
-static inline void fb_set_pixel(struct fb_info *info, int x, int y, int c)
+/*
+ * Read signal character from the input stream
+ */
+static char fb_tty_getc(struct fb_tty_info *info)
 {
-    int pos = x * info->depth + y * info->pitch;
-    char *screen = (char*)info->frame_buffer;
+    while(info->input_pos == 0)
+        thread_yield();
+    return info->input_buf[--info->input_pos];
+}
+
+static inline void fb_set_pixel(struct fb_tty_info *info, int x, int y, int c)
+{
+    struct fb_info *f_info = info->f_info;
+    int pos = x * f_info->depth + y * f_info->pitch;
+    char *screen = (char*)f_info->frame_buffer;
+    if(c == 0xFF000000) {
+        c = info->wallpaper[y * f_info->res_x + x];
+    }
     screen[pos] = c & 255;
     screen[pos + 1] = (c >> 8) & 255;
     screen[pos + 2] = (c >> 16) & 255;
@@ -263,6 +318,7 @@ static inline void fb_set_pixel(struct fb_info *info, int x, int y, int c)
 
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg)
 {
+
     if (val > 128) {
         val = 4;
     }
@@ -271,12 +327,13 @@ static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, in
     for (uint8_t i = 0; i < FONT_WIDTH; i++) {
         for (uint8_t j = 0; j < FONT_HEIGHT; j++) {
             if (c[j] & (1 << (8-i))) {
-                fb_set_pixel(info->f_info, x + i, y + j, fg);
-            } else
-                fb_set_pixel(info->f_info, x + i, y + j, bg);
+                fb_set_pixel(info, x + i, y + j, fg);
+            } else {
+                fb_set_pixel(info, x + i, y + j, bg);
+            }
         }
         if(info->underline) {
-            fb_set_pixel(info->f_info, x + i, y + FONT_HEIGHT - 1, fg);
+            fb_set_pixel(info, x + i, y + FONT_HEIGHT - 1, fg);
         }
     }
 

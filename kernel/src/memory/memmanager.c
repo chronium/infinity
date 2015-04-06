@@ -52,7 +52,6 @@ void *frame_alloc(void *vaddr, int flags)
 		phys_free_address += 0x1000;
 	}
 	frame->ref_count = 1;
-    printk(KERN_INFO "Map %x to %x\n", vaddr, frame->phys_addr);
 	page_alloc(current_directory, vaddr, frame->phys_addr, flags & 1, (flags & 2) >> 1);
 	frame->virt_addr = (uint32_t)vaddr;
 	frame->last_frame = allocated_frame_stack;

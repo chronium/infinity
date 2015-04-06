@@ -36,11 +36,13 @@ struct filesystem devfs;
 
 static int devfs_open(struct device *dev, struct file *f, const char *path, int oflag);
 static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
+static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len);
 
 void init_devfs()
 {
     strcpy(devfs.fs_name, "devfs");
     devfs.write = devfs_write;
+    devfs.read = devfs_read;
     devfs.open = devfs_open;
     int res = virtfs_mount(NULL, &devfs, "/dev");
     printk(KERN_DEBUG, "DEBUG: Mounting devfs to /dev\n");
@@ -76,6 +78,19 @@ static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t of
     while (i) {
         if (i->dev_id == ino)
             return device_write(i, data, len, off);
+        i = i->next;
+    }
+
+    return -1;
+}
+
+static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len)
+{
+    struct device *i = device_list;
+
+    while (i) {
+        if (i->dev_id == ino)
+            return device_read(i, buf, len, off);
         i = i->next;
     }
 

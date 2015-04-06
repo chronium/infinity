@@ -101,34 +101,17 @@ void klog(int log)
  */
 void flush_klog(char *buf, int size)
 {
-    int logsz = msg_queue.rb_pos > msg_queue.rb_len ? msg_queue.rb_len : msg_queue.rb_pos;
-
-    char *log = (char *)kalloc(logsz);
-
-    rb_flush(&msg_queue, log, logsz);
-
-    int bptr = 0;
-    for (int i = 0; i < logsz && bptr < size; i += sizeof(struct kernel_msg)) {
-        struct kernel_msg *msg = (struct kernel_msg *)(log + i);
-        char tmp[290];
-        memset(tmp, 0, 290);
-        sprintf(tmp, "[%d:%d] %s\n", msg->msg_tm.tm_hour, msg->msg_tm.tm_min, msg->msg_string);
-        memcpy(buf + bptr, tmp, strlen(tmp));
-        bptr += strlen(tmp);
-    }
-    kfree(log);
+    rb_flush(&msg_queue, buf, size);
 }
 
 
 void klog_output(struct device *dev)
 {
-    if(printk_output)
-    printk(KERN_INFO "Switch output to %x\n", dev);
     printk_output = dev;
 }
 
 static void kernel_log_msg(struct kernel_msg *msg)
 {
     if (should_log_messages)
-        rb_push(&msg_queue, msg, sizeof(struct kernel_msg *));
+        rb_push(&msg_queue, msg, sizeof(struct kernel_msg));
 }

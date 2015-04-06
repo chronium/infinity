@@ -50,7 +50,7 @@ void *elf_open(const char *path)
     struct file *elf = fopen(path, O_RDWR);
     void *exe = kalloc(elf->f_len);
     
-    virtfs_read(elf, exe, 0, elf->f_len);
+    fread(elf, exe, 0, elf->f_len);
     elf_alloc_sections(exe);
     elf_relocate(exe);
 
@@ -67,7 +67,7 @@ void *elf_open_v(const char *path)
     struct file *elf = fopen(path, O_RDWR);
     void *exe = kalloc(elf->f_len);
 
-    virtfs_read(elf, exe, 0, elf->f_len);
+    fread(elf, exe, 0, elf->f_len);
     
     elf_load_phdrs(exe);
 

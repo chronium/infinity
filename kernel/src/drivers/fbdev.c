@@ -55,7 +55,7 @@ static void sexify_framebuffer(struct fb_info *info, char *fb)
     struct file *bg = fopen("/lib/infinity/avril.raster", O_RDWR);
     int *zbuf = (int*)kalloc(800 * 600 * 4);
     
-    virtfs_read(bg, zbuf, 0, 800 * 600 * 4);
+    fread(bg, zbuf, 0, 800 * 600 * 4);
     int i = 0 ;
     for(int y = 0; y < 600; y++) {
         for(int x = 0; x < 800; x++) {
@@ -63,7 +63,7 @@ static void sexify_framebuffer(struct fb_info *info, char *fb)
             fb_set_pixel(info, x, y, col);
         }
     }
-    
+    kfree(zbuf);
     fclose(bg);
 }
  

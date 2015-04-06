@@ -87,7 +87,7 @@ void init_boot_modules()
     if (f) {
         struct dirent entry;
         int i = 0;
-        while (virtfs_readdir(f, i, &entry) == 0) {
+        while (readdir(f, i, &entry) == 0) {
             char file_name[256];
             memset(file_name, 0, 256);
             strcat(file_name, "/lib/infinity/modules/");

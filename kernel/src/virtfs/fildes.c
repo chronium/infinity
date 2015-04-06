@@ -86,7 +86,7 @@ size_t write(int fd, const void *buf, size_t n)
 {
     struct fildes *f = get_fildes(fd);
     if(f) {
-        return virtfs_write(f->fd_file, buf, 0, n);
+        return fwrite(f->fd_file, buf, 0, n);
     } else {
         return -1;
     }
@@ -103,7 +103,7 @@ size_t read(int fd, void *buf, size_t n)
 {
     struct fildes *f = get_fildes(fd);
     if(f) {
-        return virtfs_read(f->fd_file, buf, 0, n);
+        return fread(f->fd_file, buf, 0, n);
     } else {
         return -1;
     }

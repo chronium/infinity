@@ -47,7 +47,7 @@ void parse_symbol_file()
     struct file *f = fopen("/infinity.map", O_RDWR);
 
     if (f == NULL) {
-        printk(KERN_WARN "[WARNING] Could not load kernel symbols!\n");
+        printk(KERN_WARN "WARNING: Could not load kernel symbols!\n");
     } else {
         char line[512];
         while (f->f_len > f->f_pos) {
@@ -80,7 +80,7 @@ static void ksym_read_line(struct file *f, char *buf)
 
     while (dat != '\n' && f->f_len > f->f_pos) {
         if (dat) buf[i++] = dat;
-        virtfs_read(f, &dat, 0, 1);
+        fread(f, &dat, 0, 1);
     }
     
     buf[i] = 0;

@@ -40,6 +40,9 @@
 
 static void kthread_main();
 
+static struct file *pread;
+struct file *pwrite;
+
 /*
  * Start of kernel execution, we are transferred here
  * from boot.asm
@@ -69,18 +72,37 @@ void kmain(multiboot_info_t *mbootinfo)
     while (1) ; // Wait for the scheduler to take over
 }
 
+static void slave();
+
 /*
  * Entry point for the kernel thread (Once we have the
  * schedular enabled)
  */
 static void kthread_main()
 {
+    struct file *fd[2];
+    fpipe(fd);
+    pread = fd[0];
+    pwrite = fd[1];
+    
+    thread_create(slave, NULL);
     process_create("idle");
     printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
     init_boot_modules();
-    elf_open_v("/bin/test");
-    int r = ((int (*)(void)) 0x8048099)();;
     printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
+    
+    extern void init_debug_shell();
+    
+    init_debug_shell();
     while (1) asm ("hlt"); // We are done. Stay here
 }
 
+
+static void slave()
+{
+    while(1) {
+        char d;
+        fread(pread, &d, 0, 1);
+        printk(KERN_INFO "%c", d);
+    }
+}

@@ -252,6 +252,18 @@ static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *den
         return -1;
     device_read(dev, &entry, ifs_get_address(dev, directory[d]), sizeof(struct ifs_entry));
     dent->d_ino = directory[d];
+    
+    switch(entry.file_type) {
+        case IFS_DIRECTORY:
+            dent->d_type = DT_DIR;
+            break;
+        case IFS_REG_FILE:
+            dent->d_type = DT_REG;
+            break;
+        default:
+            dent->d_type = DT_UNKNOWN;
+            break;
+    }
     memcpy(dent->d_name, entry.file_name, 256);
     kfree(directory);
     return 0;
@@ -296,6 +308,9 @@ static int ifs_get_address(struct device *dev, int index)
  */
 static int ifs_get_directory(struct device *dev, int parent, char *dir)
 {
+    if(dir[0] == 0 && parent == 0)
+        return 0;
+    
     bool has_sep = contains(dir, '/');
     /*
      * We could just make allocate directory on the stack, but

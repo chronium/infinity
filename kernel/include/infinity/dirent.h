@@ -22,6 +22,15 @@
 #include <stdint.h>
 #include <infinity/types.h>
 
+#define DT_UNKNOWN  0x00
+#define DT_REG      0x01
+#define DT_DIR      0x02
+#define DT_FIFO     0x03
+#define DT_SOCK     0x04
+#define DT_CHR      0x05
+#define DT_BLK      0x06
+
+
 typedef struct {
     int     dd_fd;
     int     dd_loc;
@@ -39,8 +48,6 @@ struct dirent {
     char        d_name[256];
 };
 
-DIR *opendir(const char *name);
-DIR *fdopendir(int fd);
-struct dirent *readdir(DIR *dir);
+
 
 #endif
