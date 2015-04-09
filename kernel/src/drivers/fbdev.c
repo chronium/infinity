@@ -1,3 +1,25 @@
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+/*
+ * fbdev.c
+ * Device driver for accessing the VBE frame buffer
+ */
+
 #include <stdint.h>
 #include <mboot.h>
 #include <infinity/heap.h>
@@ -25,7 +47,7 @@ void init_fb(vbe_info_t *info)
     tag->depth = info->pitch / info->Xres;
     tag->frame_buffer = (char*)info->physbase;
     tag->frame_buffer_length = info->Yres * info->pitch;
-    fb_dev = device_create(CHAR_DEVICE, "framebuffer");
+    fb_dev = device_create(CHAR_DEVICE, "fb0");
     fb_dev->write = fb_write;
     fb_dev->read = fb_read;
     fb_dev->dev_tag = tag;
@@ -53,18 +75,22 @@ static inline void fb_set_pixel(struct fb_info *info, int x, int y, int c)
 static void sexify_framebuffer(struct fb_info *info, char *fb)
 {
     struct file *bg = fopen("/lib/infinity/avril.raster", O_RDWR);
-    int *zbuf = (int*)kalloc(800 * 600 * 4);
-    
-    fread(bg, zbuf, 0, 800 * 600 * 4);
-    int i = 0 ;
-    for(int y = 0; y < 600; y++) {
-        for(int x = 0; x < 800; x++) {
-            int col = zbuf[i++];
-            fb_set_pixel(info, x, y, col);
+    if(bg) {
+        int *zbuf = (int*)kalloc(800 * 600 * 4);
+        
+        fread(bg, zbuf, 0, 800 * 600 * 4);
+        int i = 0 ;
+        for(int y = 0; y < 600; y++) {
+            for(int x = 0; x < 800; x++) {
+                int col = zbuf[i++];
+                fb_set_pixel(info, x, y, col);
+            }
         }
+        kfree(zbuf);
+        fclose(bg);
+    } else {
+        printk(KERN_WARN "Booting WITHOUT sexy photo!\n");
     }
-    kfree(zbuf);
-    fclose(bg);
 }
  
 static size_t fb_write(void *tag, const char *data, size_t size, uint32_t addr)

@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,21 +15,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#ifndef INFINITY_PROCFS_H
+#define INFINITY_PROCFS_H
 
-#ifndef TYPES_H
-#define TYPES_H
-
-typedef unsigned int caddr_t;
-typedef unsigned int off_t;
-typedef unsigned short uid_t;
-typedef unsigned short gid_t;
-typedef unsigned int ino_t;
-typedef unsigned int pid_t;
-typedef unsigned int mode_t;
-typedef unsigned int time_t;
-
-
-typedef unsigned volatile int spinlock_t;
-typedef unsigned volatile int mutex_t;
+void init_procfs();
 
 #endif

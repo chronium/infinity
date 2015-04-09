@@ -25,12 +25,14 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <infinity/common.h>
+#include <infinity/interrupt.h>
 #include <infinity/kernel.h>
 
 extern struct device textscreen_device;
 
 static void display_registers(struct regs *regs);
-
+static void display_message(const char *format, va_list argp);
+static void shut_it_down_charlie_brown();
 /*
  * Gracefully brings the kernel down in the
  * result of a fatal error
@@ -38,21 +40,50 @@ static void display_registers(struct regs *regs);
  */
 void panic(const char *format, ...)
 {
-    klog(0); // Disable the kernel log because the heap could be corrupt
-
-    char msg_buff[512];
-
-    memset(msg_buff, 0, 512);
-
+    asm("cli");
     va_list argp;
     va_start(argp, format);
-    vsprintf(msg_buff, format, argp);
+    display_message(format, argp);
     va_end(argp);
+    
+    shut_it_down_charlie_brown();
+}
 
+void panic_cpu(struct regs *r, const char *format, ...)
+{
+    va_list argp;
+    va_start(argp, format);
+    display_message(format, argp);
+    va_end(argp);
+    display_registers(r);
+    shut_it_down_charlie_brown();
+}
+
+static void display_message(const char *format, va_list argp)
+{
+    klog(0); // Disable the kernel log because the heap could be corrupt
+    char msg_buff[512];
+    memset(msg_buff, 0, 512);
+    vsprintf(msg_buff, format, argp);
     printk(KERN_EMERG "kernel panic: %s\n\n", msg_buff);
+}
+
+static void display_registers(struct regs *regs)
+{
+    char bad[64];
+    int offset = rresolve_ksym(regs->eip, bad);
+    if(offset != -1) {
+        printk(KERN_EMERG "EIP is at <%s+0x%x>\n", bad, offset);
+    } else {
+        printk(KERN_EMERG "EIP is at <0x%x>\n", regs->eip);
+    }
+}
+
+static void shut_it_down_charlie_brown()
+{
     printk(KERN_EMERG "The system is HALTED!\n");
-
-
-    while (1)
-        asm ("hlt");
+    while(1) {
+        asm volatile ("cli");
+        asm volatile ("hlt");
+    }
 }

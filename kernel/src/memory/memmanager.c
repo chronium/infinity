@@ -35,6 +35,29 @@ static struct page_frame *allocated_frame_stack = NULL;
 static void *phys_free_address = 0x4000000;
 
 static struct page_frame *pop_free_frame();
+static void *frame_find(struct page_directory *pdir, void *vaddr);
+
+
+/*
+ * Finds the first frame not allocated and returns it
+ * @param pdir      The page directory
+ * @param flags     Page frame flags
+ */
+void *frame_alloc_fd(struct page_directory *pdir, int flags)
+{
+    for(int i = 0; i < 1024; i++) {
+        struct page_table *table = pdir->tables[i];
+        
+        if(table) {
+            for(int j = 0; j < 1024; j++) {
+                if(!table->pages[j].present) {
+                    void *vaddr;
+                    return frame_alloc_d(pdir, vaddr, flags);
+                }
+            }
+        }
+    }
+}
 
 /*
  * Allocates a frame at a specified virtual address
@@ -44,6 +67,11 @@ static struct page_frame *pop_free_frame();
  */
 void *frame_alloc(void *vaddr, int flags)
 {
+    return frame_alloc_d(current_directory, vaddr, flags);
+}
+
+void *frame_alloc_d(struct page_directory *pdir, void *vaddr, int flags)
+{
 	struct page_frame *frame = pop_free_frame();
 
 	if (!frame) {
@@ -52,11 +80,33 @@ void *frame_alloc(void *vaddr, int flags)
 		phys_free_address += 0x1000;
 	}
 	frame->ref_count = 1;
-	page_alloc(current_directory, vaddr, frame->phys_addr, flags & 1, (flags & 2) >> 1);
+	page_alloc(pdir, vaddr, frame->phys_addr, flags & 1, (flags & 2) >> 1);
 	frame->virt_addr = (uint32_t)vaddr;
 	frame->last_frame = allocated_frame_stack;
-	frame->page_directory = current_directory;
+	frame->page_directory = pdir;
 	allocated_frame_stack = frame;
+    return frame->phys_addr;
+}
+
+
+void frame_free_all(struct page_directory *pdir)
+{
+    struct page_frame *curr = allocated_frame_stack;
+	struct page_frame *prev = curr;
+	while (curr) {
+		if (curr->page_directory == pdir) {
+			curr->ref_count = 0;
+			if (prev == curr)
+				allocated_frame_stack = curr->last_frame;
+			else
+				prev->last_frame = curr->last_frame->last_frame = prev->last_frame;
+			curr->last_frame = free_frame_stack;
+			free_frame_stack = curr;
+			page_free(current_directory, curr->virt_addr);
+		}
+		prev = curr;
+		curr = curr->last_frame;
+	}
 }
 
 /*
@@ -83,6 +133,18 @@ void frame_free(void *vaddr)
 		prev = curr;
 		curr = curr->last_frame;
 	}
+}
+
+static void *frame_find(struct page_directory *pdir, void *vaddr)
+{
+	struct page_frame *curr = allocated_frame_stack;
+	while (curr) {
+		if (curr->virt_addr == vaddr && curr->page_directory == pdir) {
+			return curr->phys_addr;
+		}
+		curr = curr->last_frame;
+	}
+    return NULL;
 }
 
 

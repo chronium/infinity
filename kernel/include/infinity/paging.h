@@ -43,16 +43,49 @@ struct page_directory {
 
 
 void init_paging();
-void switch_page_directory(struct page_directory *dir);
-void enable_paging();
-void disable_paging();
+
 void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool write, bool user);
 void page_remap(struct page_directory *dir, uint32_t vaddr, uint32_t paddr);
 void page_free(struct page_directory *dir, uint32_t vaddr);
+void *get_physical_addr(struct page_directory *pdir, void *vaddr);
 struct page_directory *create_new_page_directory();
 
+void copy_page_physical(uint32_t dest, uint32_t src);
+
+/*
+ * Switches the current page directory, if this
+ * is corrupt, there will be hell to pay....
+ */
+ __attribute__((always_inline))
+static inline void switch_page_directory(struct page_directory *dir)
+{
+    extern struct page_directory *current_directory;
+	current_directory = dir;
+	asm volatile ("mov %0, %%cr3" :: "r" (&dir->tables_physical));
+	asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
+}
+
+__attribute__((always_inline))
+static inline void disable_paging()
+{
+	uint32_t cr0;
+	asm volatile ("mov %%cr0, %0" : "=r" (cr0));
+	cr0 &= 0x7fffffff;
+	asm volatile ("mov %0, %%cr0" :: "r" (cr0));
+}
+__attribute__((always_inline))
+static inline void enable_paging()
+{
+	uint32_t cr0;
+	asm volatile ("mov %%cr0, %0" : "=r" (cr0));
+	cr0 |= 0x80000000;
+	asm volatile ("mov %0, %%cr0" :: "r" (cr0));
+}
+
+__attribute__((always_inline))
 static inline void invlpg(void *m)
 {
     asm volatile ( "invlpg (%0)" : : "b"(m) : "memory" );
 }
+
 #endif

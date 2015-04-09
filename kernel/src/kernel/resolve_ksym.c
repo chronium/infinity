@@ -47,7 +47,7 @@ void parse_symbol_file()
     struct file *f = fopen("/infinity.map", O_RDWR);
 
     if (f == NULL) {
-        printk(KERN_WARN "WARNING: Could not load kernel symbols!\n");
+        printk(KERN_WARN "Could not load kernel symbols!\n");
     } else {
         char line[512];
         while (f->f_len > f->f_pos) {
@@ -98,6 +98,34 @@ void *resolve_ksym(const char *name)
     return NULL;
 }
 
+int rresolve_ksym(int addr, char *buf)
+{
+    struct kernel_symbol *sym = symbol_list;
+    struct kernel_symbol *closest = NULL;
+    int distc;
+    
+    while (sym) {
+        if(sym->s_addr <= addr) {
+            if(closest) {
+                int disti = addr - sym->s_addr; 
+                distc = addr - closest->s_addr;
+                if(disti < distc) {
+                    closest = sym;
+                }
+            } else {
+                closest = sym;
+            }
+        }
+        sym = sym->next;
+    }
+    
+    if(closest) {
+        strcpy(buf, closest->s_name);
+        return distc;
+    } else {
+        return -1;
+    }
+}
 
 static void ksym_add_to_list(struct kernel_symbol *ksym)
 {

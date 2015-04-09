@@ -104,12 +104,18 @@ void flush_klog(char *buf, int size)
     rb_flush(&msg_queue, buf, size);
 }
 
-
+/*
+ * Change the output device
+ * @param dev   The device to output to
+ */
 void klog_output(struct device *dev)
 {
     printk_output = dev;
 }
 
+/*
+ * Stores a message inside the kernel's log
+ */
 static void kernel_log_msg(struct kernel_msg *msg)
 {
     if (should_log_messages)

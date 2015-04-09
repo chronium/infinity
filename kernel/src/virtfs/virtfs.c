@@ -62,7 +62,7 @@ int virtfs_init(struct device *dev, struct filesystem *initrd)
  */
 int virtfs_mount(struct device *dev, struct filesystem *fs, const char *path)
 {
-	printk(KERN_DEBUG "DEBUG: Mounting device '%s' using filesystem '%s' to %s\n", dev->dev_name, fs->fs_name, path);
+	printk(KERN_DEBUG "Mounting device '%s' using filesystem '%s' to %s\n", dev->dev_name, fs->fs_name, path);
 
 	char *rpath = NULL;
 	struct mntpoint *mnt = virtfs_find_mount(path, &rpath);

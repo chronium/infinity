@@ -33,15 +33,14 @@
 #include <infinity/sched.h>
 #include <infinity/sync.h>
 #include <infinity/module.h>
+#include <infinity/event.h>
 #include <infinity/syscalls.h>
+#include <infinity/procfs.h>
 #include <infinity/drivers/pit.h>
 #include <infinity/drivers/textscreen.h>
 #include <infinity/drivers/serial.h>
 
 static void kthread_main();
-
-static struct file *pread;
-struct file *pwrite;
 
 /*
  * Start of kernel execution, we are transferred here
@@ -65,14 +64,14 @@ void kmain(multiboot_info_t *mbootinfo)
     init_idt();
     init_devfs();
     init_pit(50);
-    init_sched();
     init_syscalls();
-    thread_create(kthread_main, NULL);
-
-    while (1) ; // Wait for the scheduler to take over
+    init_procfs();
+    init_sched(kthread_main);
+    
+    while (1);
 }
 
-static void slave();
+static void kthread_test();
 
 /*
  * Entry point for the kernel thread (Once we have the
@@ -80,29 +79,15 @@ static void slave();
  */
 static void kthread_main()
 {
-    struct file *fd[2];
-    fpipe(fd);
-    pread = fd[0];
-    pwrite = fd[1];
-    
-    thread_create(slave, NULL);
-    process_create("idle");
-    printk(KERN_DEBUG "DEBUG: Kernel thread initialized\n");
+    printk(KERN_DEBUG "Kernel thread initialized\n");
     init_boot_modules();
-    printk(KERN_DEBUG "DEBUG: Infinity kernel initialization complete. Going idle NOW!\n");
-    
+    printk(KERN_DEBUG "Infinity kernel initialization complete. Going idle NOW!\n");
+    event_dispatch(KERNEL_INIT, NULL);
     extern void init_debug_shell();
-    
+    extern struct page_directory *current_directory;
     init_debug_shell();
-    while (1) asm ("hlt"); // We are done. Stay here
-}
-
-
-static void slave()
-{
-    while(1) {
-        char d;
-        fread(pread, &d, 0, 1);
-        printk(KERN_INFO "%c", d);
+    
+    while (1) {
+        asm ("hlt"); // We are done. Stay here
     }
 }

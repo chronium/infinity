@@ -32,7 +32,7 @@
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
 
-static void elf_load_phdrs(void *elf);
+static void elf_load_phdrs(struct page_directory *pdir, void *elf);
 static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx);
 static int elf_alloc_sections(struct elf32_ehdr *hdr);
 static int elf_move_symbols(struct elf32_ehdr *hdr);
@@ -62,17 +62,13 @@ void *elf_open(const char *path)
  * Opens up an ELF32 executable, loading it 
  * into virtual memory
  */
-void *elf_open_v(const char *path)
+void *elf_open_v(struct page_directory *pdir, const char *path)
 {
     struct file *elf = fopen(path, O_RDWR);
     void *exe = kalloc(elf->f_len);
-
     fread(elf, exe, 0, elf->f_len);
-    
-    elf_load_phdrs(exe);
-
+    elf_load_phdrs(pdir, exe);
     fclose(elf);
-
     return exe;
 }
 
@@ -80,7 +76,7 @@ void *elf_open_v(const char *path)
  * Load the data defined in the ELF's program headers 
  * and map to virtual memory
  */
-static void elf_load_phdrs(void *elf)
+static void elf_load_phdrs(struct page_directory *pdir, void *elf)
 {
     struct elf32_ehdr *hdr = (struct elf32_ehdr *)elf;
     struct elf32_phdr *phdr = elf_pheader(hdr);
@@ -90,11 +86,14 @@ static void elf_load_phdrs(void *elf)
         
         if(p->p_type == PT_LOAD) {
             for(int i = 0; i < p->p_memsz; i += 0x1000) {
-                frame_alloc(p->p_vaddr + i, PAGE_RW | PAGE_USER);
+                void *pa = frame_alloc_d(pdir, p->p_vaddr + i, PAGE_RW | PAGE_USER);
+                void *aa = (void*)(((uint32_t)elf + p->p_offset + i));
+                copy_page_physical(aa, pa);
             }
-            memcpy((void*)p->p_vaddr, (void*)(elf + p->p_offset), p->p_filesz);
+        
         }
     }
+    
 }
 
 /*

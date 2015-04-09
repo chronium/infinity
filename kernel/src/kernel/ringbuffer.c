@@ -27,6 +27,11 @@
 static void rb_push_byte(struct ring_buffer *rb, char b);
 static int rb_pop_byte(struct ring_buffer *rb);
 
+/*
+ * Initialize the ring buffer
+ * @param rb    Ring buffer struct
+ * @param size  Size of the ring buffer
+ */
 void rb_init(struct ring_buffer *rb, int size)
 {
     rb->rb_len = size;
@@ -36,6 +41,12 @@ void rb_init(struct ring_buffer *rb, int size)
     spin_unlock(&rb->rb_lock);
 }
 
+/*
+ * Commits data to the buffer
+ * @param rb    The ring buffer struct
+ * @param data  Data to write to the buffer
+ * @param len   Length of the data
+ */
 void rb_push(struct ring_buffer *rb, const void *data, int len)
 {
     spin_lock(&rb->rb_lock);
@@ -44,6 +55,13 @@ void rb_push(struct ring_buffer *rb, const void *data, int len)
     spin_unlock(&rb->rb_lock);
 }
 
+/*
+ * Removes data from the ring buffer, writing
+ * it into buf
+ * @param rb    The ring buffer struct
+ * @param buf   Buffer to read into
+ * @parma len   How many bytes to read
+ */
 void rb_pop(struct ring_buffer *rb, void *buf, int len)
 {
     spin_lock(&rb->rb_lock);
@@ -52,6 +70,13 @@ void rb_pop(struct ring_buffer *rb, void *buf, int len)
     spin_unlock(&rb->rb_lock);
 }
 
+/*
+ * Copies the contents of a ring buffer into
+ * a buffer
+ * @param rb    The ring buffer struct
+ * @param buf   The buffer to write the data into
+ * @param size  How big our buffer is
+ */
 void *rb_flush(struct ring_buffer *rb, void *buf, int size)
 {
     spin_lock(&rb->rb_lock);

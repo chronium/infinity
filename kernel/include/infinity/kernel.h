@@ -52,5 +52,9 @@ void klog(int log);
 void klog_output(struct device *dev);
 void printk(const char *format, ...);
 void panic(const char *format, ...);
+void panic_cpu(struct regs *r, const char *format, ...);
 void *resolve_ksym(const char *name);
+int rresolve_ksym(int addr, char *buf);
+int execvpe(const char *path, const char *argv[], const char *envp[]);
+
 #endif

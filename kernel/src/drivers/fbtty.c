@@ -1,3 +1,26 @@
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+/*
+ * fbtty.c
+ * Driver for a kernel terminal emulator using the VBE frame buffer
+ */
+
+
 #include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/tty.h>
@@ -39,12 +62,16 @@ static void fb_set_home(struct fb_tty_info *info, const char *attr);
 static void fb_reset(struct fb_tty_info *info);
 static void fb_newline(struct fb_tty_info *info);
 static void fb_scroll(struct fb_tty_info *info);
+static void fb_clear(struct fb_tty_info *info);
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr);
 static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr);
 static void fb_tty_recieve(struct tty *t, char c);
 static char fb_tty_getc(struct fb_tty_info *info);
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg);
 
+/*
+ * Initialize the terminal driver
+ */
 void init_fbtty(struct fb_info *info)
 {
     struct fb_tty_info *t_info = (struct fb_tty_info*)kalloc(sizeof(struct fb_tty_info));
@@ -66,6 +93,22 @@ void init_fbtty(struct fb_info *info)
     fread(bg, t_info->wallpaper, 0, 800 * 600 * 4);
     
     fclose(bg);
+}
+
+/*
+ * Set a pixel
+ */ 
+static inline void fb_set_pixel(struct fb_tty_info *info, int x, int y, int c)
+{
+    struct fb_info *f_info = info->f_info;
+    int pos = x * f_info->depth + y * f_info->pitch;
+    char *screen = (char*)f_info->frame_buffer;
+    if(c == 0xFF000000) {
+        c = info->wallpaper[y * f_info->res_x + x];
+    }
+    screen[pos] = c & 255;
+    screen[pos + 1] = (c >> 8) & 255;
+    screen[pos + 2] = (c >> 16) & 255;
 }
 
 /*
@@ -109,7 +152,9 @@ static void fb_putc(struct fb_tty_info *info, char c)
 static void fb_putc_esc(struct fb_tty_info *info, char c)
 {
     if(info->escape_pos == 0 && c == 'c') {
-        // Clear the screen
+        fb_reset(info);
+        fb_clear(info);
+        info->escaped = 0;
     } else if(c == 'm' && info->escape_buf[0] == '[') { 
         fb_set_attrs(info, info->escape_buf);
         info->escaped = 0;
@@ -251,6 +296,20 @@ static void fb_scroll(struct fb_tty_info *t_info)
     t_info->position = t_info->width * (t_info->height - 1);
 }
 
+/*
+ * Clears the screen
+ */ 
+static void fb_clear(struct fb_tty_info *info)
+{
+    info->position = 0;
+    int i = 0;
+    for(int y = 0; y < 600; y++) {
+        for(int x = 0; x < 800; x++) {
+            fb_set_pixel(info, x, y, info->wallpaper[i++]);
+        }
+    }
+}
+
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr)
 {
     struct fb_tty_info *info = (struct fb_tty_info*)tag;
@@ -301,19 +360,6 @@ static char fb_tty_getc(struct fb_tty_info *info)
     while(info->input_pos == 0)
         thread_yield();
     return info->input_buf[--info->input_pos];
-}
-
-static inline void fb_set_pixel(struct fb_tty_info *info, int x, int y, int c)
-{
-    struct fb_info *f_info = info->f_info;
-    int pos = x * f_info->depth + y * f_info->pitch;
-    char *screen = (char*)f_info->frame_buffer;
-    if(c == 0xFF000000) {
-        c = info->wallpaper[y * f_info->res_x + x];
-    }
-    screen[pos] = c & 255;
-    screen[pos + 1] = (c >> 8) & 255;
-    screen[pos + 2] = (c >> 16) & 255;
 }
 
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg)

@@ -29,7 +29,7 @@
 #include <infinity/fildes.h>
 
 
-extern struct thread *current_thread;
+extern struct process *current_proc;
 
 static struct fildes *get_fildes(int num);
 static void add_fildes(struct fildes *fd);
@@ -45,7 +45,7 @@ int open(const char *path, int mode)
     struct file *f = fopen(path, mode);
     if(f) {
         struct fildes *fd = (struct fildes*)kalloc(sizeof(struct fildes));
-        fd->fd_num = current_thread->t_proc->p_nextfd++;
+        fd->fd_num = current_proc->p_nextfd++;
         fd->next = NULL;
         fd->fd_file = f;
         add_fildes(fd);
@@ -114,8 +114,7 @@ size_t read(int fd, void *buf, size_t n)
  */
 static struct fildes *get_fildes(int num)
 {
-    struct process *proc = current_thread->t_proc;
-    struct fildes *i = proc->p_fildes_table;
+    struct fildes *i = current_proc->p_fildes_table;
     while(i) {
         if(i->fd_num == num) {
             return i;
@@ -131,10 +130,9 @@ static struct fildes *get_fildes(int num)
  */
 static void add_fildes(struct fildes *fd)
 {
-    struct process *proc = current_thread->t_proc;
-    struct fildes *i = proc->p_fildes_table;
+    struct fildes *i = current_proc->p_fildes_table;
     if(!i) {
-        proc->p_fildes_table = fd;
+        current_proc->p_fildes_table = fd;
     } else {
         while(i->next) {
             i = i->next;
@@ -145,10 +143,9 @@ static void add_fildes(struct fildes *fd)
 
 static void remove_fildes(struct fildes *fd)
 {
-    struct process *proc = current_thread->t_proc;
-    struct fildes *i = proc->p_fildes_table;
+    struct fildes *i = current_proc->p_fildes_table;
     if(i == fd) {
-        proc->p_fildes_table = i->next;
+        current_proc->p_fildes_table = i->next;
     } else {
         struct fildes *last = NULL;
         while(i) {

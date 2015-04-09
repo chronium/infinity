@@ -40,5 +40,8 @@ void *frame_alloc_d(struct page_directory *dir, void *vaddr, int flags);
 void frame_free(void *vaddr);
 void *frame_free_d(struct page_directory *dir, void *vaddr);
 void *frame_map(void *vaddr, void *freeaddr);
+void *frame_clone(struct page_directory *pdir, struct page_directory *ndir, void *vaddr, int nflags);
+void *frame_alloc_fd(struct page_directory *pdir, int flags);
+void frame_free_all(struct page_directory *pdir);
 
 #endif

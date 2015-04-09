@@ -27,6 +27,7 @@
 #include <infinity/device.h>
 #include <infinity/types.h>
 #include <infinity/heap.h>
+#include <infinity/dirent.h>
 #include <infinity/virtfs.h>
 
 
@@ -35,6 +36,7 @@ extern struct device *device_list;
 struct filesystem devfs;
 
 static int devfs_open(struct device *dev, struct file *f, const char *path, int oflag);
+static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent);
 static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
 static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len);
 
@@ -44,17 +46,53 @@ void init_devfs()
     devfs.write = devfs_write;
     devfs.read = devfs_read;
     devfs.open = devfs_open;
+    devfs.readdir = devfs_read_dir;
     int res = virtfs_mount(NULL, &devfs, "/dev");
-    printk(KERN_DEBUG, "DEBUG: Mounting devfs to /dev\n");
+    printk(KERN_DEBUG, "Mounting devfs to /dev\n");
     if (res)
-        printk(KERN_ERR, "ERROR: Could not mount devfs to /dev! Things are about to get ugly!\n");
+        printk(KERN_ERR, "Could not mount devfs to /dev! Things are about to get ugly!\n");
 }
 
+static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent)
+{
+    struct device *i = device_list;
+    int j = 0;
+    while(i) {
+        if(j == d) {
+            dent->d_ino = i->dev_id;
+            memcpy(dent->d_name, i->dev_name, 256);
+            switch(i->dev_type) {
+                case CHAR_DEVICE:
+                    dent->d_type = DT_CHR;
+                    break;
+                case BLOCK_DEVICE:
+                    dent->d_type = DT_BLK;
+                    break;
+            }
+            return 0;
+        }
+        j++;
+        i = i->next;
+    }
+    
+    return -1;
+}
 
 static int devfs_open(struct device *dev, struct file *f, const char *path, int oflag)
 {
     struct device *i = device_list;
 
+    if(path[0] == 0) {
+        f->f_ino = 0;
+        f->f_fs = &devfs;
+        
+        if (oflag & O_RDWR || oflag & O_WRONLY)
+            f->f_flags |= F_SUPPORT_WRITE;
+        if (oflag & O_RDONLY || oflag & O_RDWR)
+            f->f_flags |= F_SUPPORT_READ;
+        return 0;
+    }
+    
     while (i) {
         if (!strcmp(path, i->dev_name)) {
             f->f_ino = i->dev_id;
@@ -67,7 +105,6 @@ static int devfs_open(struct device *dev, struct file *f, const char *path, int 
         }
         i = i->next;
     }
-
     return -1;
 }
 

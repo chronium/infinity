@@ -61,12 +61,11 @@ int free_isr(int inum)
 void handle_isr(struct regs *registers)
 {
 	int i = registers->interrupt & 0xFF;
-
 	if (isr_handlers[i])
 		isr_handlers[i](registers);
     else 
     {
-        panic("%d", i);
+        panic_cpu(registers, "%d %d", i, registers->err_code);
     }
 	outb(0x20, 0x20);
 }

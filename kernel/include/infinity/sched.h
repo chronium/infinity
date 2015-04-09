@@ -32,16 +32,16 @@ struct process {
     pid_t                   p_id;
     uid_t                   p_uid;
     gid_t                   p_gid;
+    char                    p_kill;
+    int                     p_ttl;
+    int                     p_status;
     int                     p_nextfd;
+    void *                  p_mstart;
+    void *                  p_mbreak;
+    void *                  p_esp;
     struct page_directory * p_pdir;
     struct fildes *         p_fildes_table;
-};
-
-struct thread {
-    pid_t           t_id;
-    void *          t_esp;
-    struct process *t_proc;
-    struct thread * next;
+    struct process *        next;
 };
 
 struct task {
@@ -52,13 +52,13 @@ struct task {
 
 extern struct process *current_proc;
 
-void init_sched();
-void schedule_task(struct task *task);
-void thread_create(void *target, void *arg);
+void init_sched(void *callback);
+int spawnve(int mode, char *path, char **argv, char **envp);
 void thread_yield();
-void process_create(const char *name);
-
+void exit(int status);
+pid_t waitpid(pid_t id, int *status);
 pid_t getpid();
 uid_t getuid();
+pid_t fork();
 
 #endif

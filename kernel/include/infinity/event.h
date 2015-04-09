@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,20 +16,23 @@
  */
 
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef INFINITY_EVENT_H
+#define INFINITY_EVENT_H
 
-typedef unsigned int caddr_t;
-typedef unsigned int off_t;
-typedef unsigned short uid_t;
-typedef unsigned short gid_t;
-typedef unsigned int ino_t;
-typedef unsigned int pid_t;
-typedef unsigned int mode_t;
-typedef unsigned int time_t;
+#include <stdint.h>
 
+typedef void (*event_handler_t)(int32_t e, void *args);
 
-typedef unsigned volatile int spinlock_t;
-typedef unsigned volatile int mutex_t;
+enum events {
+    KERNEL_INIT =       0,
+    KERNEL_SHUTDOWN =   1,
+    PROCESS_CREATE =    2,
+    PROCESS_DESTROY =   3,
+    
+};
+
+void event_subscribe(uint32_t e, event_handler_t handler);
+void event_unsubscribe(event_handler_t handler);
+void event_dispatch(uint32_t e, void *args);
 
 #endif

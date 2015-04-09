@@ -41,8 +41,11 @@ struct page_directory *current_directory;
 
 struct page_directory *kernel_directory;
 
+static struct page_table *clone_table(struct page_directory *pdir, struct page_table *src, uint32_t *phys_addr);
+
 void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool write, bool user)
 {
+    void *rd = vaddr;
 	vaddr /= 0x1000;
 	uint32_t i = vaddr / 1024;
 	if (!dir->tables[i]) {
@@ -53,14 +56,14 @@ void page_alloc(struct page_directory *dir, uint32_t vaddr, uint32_t paddr, bool
 	}
     
 	struct page *p = &dir->tables[i]->pages[vaddr % 1024];
-	if (p->present)
+	if (p->present) {
 		return;
+    }
 	p->frame = paddr >> 12;
 	p->present = 1;
 	p->rw = write;
 	p->user = user;
 }
-
 
 void page_remap(struct page_directory *dir, uint32_t vaddr, uint32_t paddr)
 {
@@ -74,7 +77,6 @@ void page_remap(struct page_directory *dir, uint32_t vaddr, uint32_t paddr)
 	p->frame = paddr >> 12;
 }
 
-
 void page_free(struct page_directory *dir, uint32_t vaddr)
 {
 	vaddr /= 0x1000;
@@ -82,16 +84,19 @@ void page_free(struct page_directory *dir, uint32_t vaddr)
 	memset(&dir->tables[i]->pages[vaddr % 1024], 0, sizeof(struct page));
 }
 
-struct page_directory *create_new_page_directory()
+void *get_physical_addr(struct page_directory *pdir, void *vaddr)
 {
-	struct page_directory *dir = (struct page_directory *)malloc_pa(sizeof(struct page_directory));
-
-	memset(dir, 0, sizeof(struct page_directory));
-
-	for (uint32_t ptr = 0; ptr < IDENTITY_MAP_END; ptr += 0x1000)
-		page_alloc(dir, ptr, ptr, 0, 0);
-	return dir;
+    
+	uint32_t i = (uint32_t)vaddr / 0x1000 / 1024;
+    
+    struct page_table *tbl = pdir->tables[i];
+    if(tbl) {
+        struct page *p = &pdir->tables[i]->pages[((uint32_t)vaddr / 0x1000) % 1024];
+        return (void*)((p->frame << 12) | ((uint32_t)vaddr & 0xFFF));
+    }
+    return NULL;
 }
+
 
 /*
  * Initializes paging
@@ -111,32 +116,3 @@ void init_paging()
         
 }
 
-/*
- * Switches the current page directory, if this
- * is corrupt, there will be hell to pay....
- */
-void switch_page_directory(struct page_directory *dir)
-{
-	current_directory = dir;
-	asm volatile ("mov %0, %%cr3" :: "r" (&dir->tables_physical));
-	asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
-}
-
-
-void disable_paging()
-{
-	paging_enabled = false;
-	uint32_t cr0;
-	asm volatile ("mov %%cr0, %0" : "=r" (cr0));
-	cr0 &= 0x7fffffff;
-	asm volatile ("mov %0, %%cr0" :: "r" (cr0));
-}
-
-void enable_paging()
-{
-	paging_enabled = true;
-	uint32_t cr0;
-	asm volatile ("mov %%cr0, %0" : "=r" (cr0));
-	cr0 |= 0x80000000;
-	asm volatile ("mov %0, %%cr0" :: "r" (cr0));
-}
