@@ -29,7 +29,7 @@
 #define DT_SOCK     0x04
 #define DT_CHR      0x05
 #define DT_BLK      0x06
-
+#define DT_LNK      0x07
 
 typedef struct {
     int     dd_fd;

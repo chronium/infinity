@@ -22,13 +22,25 @@
 
 #include <infinity/types.h>
 #define atomic_xadd(P, V) __sync_fetch_and_add((P), (V))
+
+static int release_all = 0;
+
+/*
+ * Release all locls
+ */
+ 
+void release_all_locks()
+{
+    release_all = 1;
+}
+ 
 /*
  * Will lock a spinlock_t
  * @param lock  The lock to lock
  */
 void spin_lock(spinlock_t *lock)
 {
-	while (*lock)
+	while (*lock && !release_all)
 		asm ("pause");
 	__sync_lock_test_and_set(lock, 1);
 }

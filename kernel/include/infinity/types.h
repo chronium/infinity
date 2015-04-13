@@ -27,6 +27,7 @@ typedef unsigned int ino_t;
 typedef unsigned int pid_t;
 typedef unsigned int mode_t;
 typedef unsigned int time_t;
+typedef unsigned int dev_t;
 
 
 typedef unsigned volatile int spinlock_t;

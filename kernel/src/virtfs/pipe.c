@@ -60,8 +60,8 @@ int fpipe(struct file *f[])
     f2->f_tag = buf;
     add_to_file_table(f1);
     add_to_file_table(f2);
-    f2->f_flags |= F_SUPPORT_WRITE;
-    f1->f_flags |= F_SUPPORT_READ;
+    //f2->f_flags |= F_SUPPORT_WRITE;
+    //f1->f_flags |= F_SUPPORT_READ;
     f[0] = f1;
     f[1] = f2;
 }

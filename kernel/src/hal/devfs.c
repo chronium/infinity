@@ -21,6 +21,7 @@
  */
 
 #include <stddef.h>
+#include <stdarg.h>
 #include <infinity/fcntl.h>
 #include <infinity/kernel.h>
 #include <infinity/common.h>
@@ -33,24 +34,30 @@
 
 extern struct device *device_list;
 
-struct filesystem devfs;
-
+static int devfs_read_inode(struct device *dev, struct inode *ino, const char *path);
 static int devfs_open(struct device *dev, struct file *f, const char *path, int oflag);
 static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent);
 static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
 static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len);
+static int devfs_ioctl(struct device *dev, ino_t ino, unsigned long request, va_list argp);
+static int devfs_fstat(struct device *dev, ino_t ino, struct stat *st);
+
+struct filesystem devfs = {
+        .write = devfs_write,
+        .read = devfs_read,
+        .readdir = devfs_read_dir,
+        .readino = devfs_read_inode,
+        .fstat = devfs_fstat
+    };
 
 void init_devfs()
 {
     strcpy(devfs.fs_name, "devfs");
-    devfs.write = devfs_write;
-    devfs.read = devfs_read;
-    devfs.open = devfs_open;
-    devfs.readdir = devfs_read_dir;
+
     int res = virtfs_mount(NULL, &devfs, "/dev");
     printk(KERN_DEBUG, "Mounting devfs to /dev\n");
     if (res)
-        printk(KERN_ERR, "Could not mount devfs to /dev! Things are about to get ugly!\n");
+        printk(KERN_ERR, "devfs: What is this! Someone has already mounted something onto /dev? THIS IS AN OUTRAGE. \n");
 }
 
 static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent)
@@ -78,29 +85,19 @@ static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *d
     return -1;
 }
 
-static int devfs_open(struct device *dev, struct file *f, const char *path, int oflag)
+static int devfs_read_inode(struct device *dev, struct inode *ino, const char *path)
 {
     struct device *i = device_list;
-
     if(path[0] == 0) {
-        f->f_ino = 0;
-        f->f_fs = &devfs;
-        
-        if (oflag & O_RDWR || oflag & O_WRONLY)
-            f->f_flags |= F_SUPPORT_WRITE;
-        if (oflag & O_RDONLY || oflag & O_RDWR)
-            f->f_flags |= F_SUPPORT_READ;
+        ino->i_ino = 0;
+        ino->i_dev = 0xCB00;
         return 0;
     }
     
     while (i) {
         if (!strcmp(path, i->dev_name)) {
-            f->f_ino = i->dev_id;
-            f->f_fs = &devfs;
-            if (oflag & O_RDWR || oflag & O_WRONLY)
-                f->f_flags |= F_SUPPORT_WRITE;
-            if (oflag & O_RDONLY || oflag & O_RDWR)
-                f->f_flags |= F_SUPPORT_READ;
+            ino->i_ino = i->dev_id;
+            ino->i_dev = 0xCB00;
             return 0;
         }
         i = i->next;
@@ -111,7 +108,6 @@ static int devfs_open(struct device *dev, struct file *f, const char *path, int 
 static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t off, size_t len)
 {
     struct device *i = device_list;
-
     while (i) {
         if (i->dev_id == ino)
             return device_write(i, data, len, off);
@@ -121,6 +117,11 @@ static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t of
     return -1;
 }
 
+static int devfs_fstat(struct device *dev, ino_t ino, struct stat *st)
+{
+    return 0;
+}
+
 static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len)
 {
     struct device *i = device_list;
@@ -128,6 +129,19 @@ static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_
     while (i) {
         if (i->dev_id == ino)
             return device_read(i, buf, len, off);
+        i = i->next;
+    }
+
+    return -1;
+}
+
+static int devfs_ioctl(struct device *dev, ino_t ino, unsigned long request, va_list argp)
+{
+    struct device *i = device_list;
+
+    while (i) {
+        if (i->dev_id == ino)
+            return device_ioctl(i, request, argp);
         i = i->next;
     }
 

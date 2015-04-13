@@ -28,14 +28,14 @@
 #include <infinity/types.h>
 
 struct kernel_symbol {
-    char            s_name[64];
-    caddr_t         s_addr;
+    char                    s_name[64];
+    caddr_t                 s_addr;
     struct kernel_symbol *  next;
 };
 
 static struct kernel_symbol *symbol_list = NULL;
 static void ksym_parse(const char *line);
-static void ksym_read_line(struct file *f, char *buf);
+static int ksym_read_line(int fd, char *buf);
 static void ksym_add_to_list(struct kernel_symbol *ksym);
 
 /*
@@ -44,20 +44,24 @@ static void ksym_add_to_list(struct kernel_symbol *ksym);
  */
 void parse_symbol_file()
 {
-    struct file *f = fopen("/infinity.map", O_RDWR);
+    int fd = open("/infinity.map", O_RDWR);
 
-    if (f == NULL) {
+    if (fd == -1) {
         printk(KERN_WARN "Could not load kernel symbols!\n");
     } else {
         char line[512];
-        while (f->f_len > f->f_pos) {
-            ksym_read_line(f, line);
+        ksym_read_line(fd, line);
+        while (ksym_read_line(fd, line)) {
             ksym_parse(line);
         }
-        fclose(f);
+        close(fd);
     }
+    
 }
 
+/*
+ * Parse a line in the linker map file
+ */
 static void ksym_parse(const char *line)
 {
     char address[9];
@@ -73,19 +77,23 @@ static void ksym_parse(const char *line)
     ksym_add_to_list(ksym);
 }
 
-static void ksym_read_line(struct file *f, char *buf)
+/*
+ * Read a single line from the linker map file
+ */ 
+static int ksym_read_line(int fd, char *buf)
 {
     int i = 0;
     char dat = 0;
-
-    while (dat != '\n' && f->f_len > f->f_pos) {
-        if (dat) buf[i++] = dat;
-        fread(f, &dat, 0, 1);
+    while(read(fd, &dat, 1) && dat && dat != '\n') {
+        buf[i++] = dat;
     }
-    
     buf[i] = 0;
+    return i;
 }
 
+/*
+ * Resolves the value for a specific symbol
+ */
 void *resolve_ksym(const char *name)
 {
     struct kernel_symbol *sym = symbol_list;
@@ -98,6 +106,13 @@ void *resolve_ksym(const char *name)
     return NULL;
 }
 
+/*
+ * Gets the name of a symbol based on its 
+ * address in memory
+ * @param addr      The address in question
+ * @buf             A buffer to store the closest
+ *                  symbol
+ */
 int rresolve_ksym(int addr, char *buf)
 {
     struct kernel_symbol *sym = symbol_list;
@@ -127,6 +142,9 @@ int rresolve_ksym(int addr, char *buf)
     }
 }
 
+/*
+ * Adds a struct kernel_symbol to the symbol list
+ */
 static void ksym_add_to_list(struct kernel_symbol *ksym)
 {
     if (symbol_list == NULL) {

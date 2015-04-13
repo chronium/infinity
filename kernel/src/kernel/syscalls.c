@@ -2,17 +2,20 @@
 #include <infinity/interrupt.h>
 #include <infinity/fildes.h>
 #include <infinity/syscalls.h>
+#include <infinity/fcntl.h>
 #include <infinity/sched.h>
 
 
 int syscall_table[] = {
-  NULL, 
-  NULL,
-  NULL,
-  read,  
-  write, 
-  open, 
-  close, 
+  NULL,  // 0
+  exit,  // 1
+  sbrk,  // 2
+  read,  // 3
+  write, // 4
+  open,  // 5
+  close, // 6
+  lseek, // 7
+  fstat  // 8
 };
 
 static void syscall_handler(struct regs *r);
@@ -28,11 +31,6 @@ static int scount = 0;
 
 static void syscall_handler(struct regs *r)
 {
+    asm("sti");
     r->eax = ((int (*)(int, int, int, int, int))(void*)syscall_table[r->eax])(r->ebx, r->ecx, r->edx, r->esi, r->edi);
-    scount++;
-    if(scount == 9) {
-       
-        scount = 0;
-        exit(0);
-    }
 }

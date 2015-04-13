@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 typedef enum devtype {
     BLOCK_DEVICE = 0,
@@ -34,13 +35,14 @@ struct device {
     void *          dev_tag;
     size_t          (*read)     (void *tag, void *buffer, size_t, uint32_t addr);
     size_t          (*write)    (void *tag, const void *data, size_t, uint32_t addr);
-    int             (*ioctl)    (void *tag, unsigned long request, ...);
+    int             (*ioctl)    (void *tag, unsigned long request, va_list argp);
     struct device * next;
 };
 
 struct device *device_create(devtype_t type, const char *name);
 size_t device_read(struct device *dev, void *buff, size_t size, uint32_t addr);
 size_t device_write(struct device *dev, const void *buff, size_t size, uint32_t addr);
+size_t device_ioctl(struct device *dev, unsigned long request, va_list argp);
 void init_devfs();
 
 #endif

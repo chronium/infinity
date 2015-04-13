@@ -219,7 +219,7 @@ static inline char *elf_lookup_string_strtab(struct elf32_ehdr *hdr, int offset)
     return strtab + offset;
 }
 void *elf_open(const char *path);
-void *elf_open_v(struct page_directory *pdir, const char *path);
+void *elf_open_v(struct process *proc, const char *path);
 void *elf_sym(const void *elf, const char *sym);
 int elf_close(void *elf);
 

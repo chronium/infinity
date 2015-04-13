@@ -30,11 +30,13 @@
 #include <infinity/virtfs.h>
 #include <infinity/elf32.h>
 #include <infinity/paging.h>
+#include <infinity/sched.h>
 #include <infinity/memmanager.h>
 
-static void elf_load_phdrs(struct page_directory *pdir, void *elf);
+static void elf_load_phdrs(struct process *proc, void *elf);
 static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx);
 static int elf_alloc_sections(struct elf32_ehdr *hdr);
+static int elf_alloc_sections_v(struct process *proc, struct elf32_ehdr *hdr);
 static int elf_move_symbols(struct elf32_ehdr *hdr);
 static int elf_relocate(struct elf32_ehdr *hdr);
 static int elf_do_reloc(struct elf32_ehdr *hdr, struct elf32_rel *rel, struct elf32_shdr *reltab);
@@ -47,53 +49,84 @@ static int elf_get_strindex(struct elf32_ehdr *hdr, const char *sym);
  */
 void *elf_open(const char *path)
 {
-    struct file *elf = fopen(path, O_RDWR);
-    void *exe = kalloc(elf->f_len);
-    
-    fread(elf, exe, 0, elf->f_len);
-    elf_alloc_sections(exe);
-    elf_relocate(exe);
+    struct stat st;
+    stat(path, &st);
+    int elf = open(path, O_RDONLY);
+    if(elf != -1) {
+        void *exe = kalloc(st.st_size);
+        
+        read(elf, exe, st.st_size);
+        elf_alloc_sections(exe);
+        elf_relocate(exe);
 
-    fclose(elf);
-    return exe;
+        close(elf);
+        return exe;
+    }
+    return NULL;
 }
 
 /*
  * Opens up an ELF32 executable, loading it 
  * into virtual memory
  */
-void *elf_open_v(struct page_directory *pdir, const char *path)
+void *elf_open_v(struct process *proc, const char *path)
 {
-    struct file *elf = fopen(path, O_RDWR);
-    void *exe = kalloc(elf->f_len);
-    fread(elf, exe, 0, elf->f_len);
-    elf_load_phdrs(pdir, exe);
-    fclose(elf);
-    return exe;
+    struct stat st;
+    stat(path, &st);
+    int elf = open(path, O_RDONLY);
+    if(elf != -1) {
+        void *exe = kalloc(st.st_size);
+        
+        read(elf, exe, st.st_size);
+        
+        elf_load_phdrs(proc, exe);
+        close(elf);
+        
+        return exe;
+    }
+    return NULL;
 }
 
 /*
  * Load the data defined in the ELF's program headers 
  * and map to virtual memory
  */
-static void elf_load_phdrs(struct page_directory *pdir, void *elf)
+static void elf_load_phdrs(struct process *proc, void *elf)
 {
+    
     struct elf32_ehdr *hdr = (struct elf32_ehdr *)elf;
     struct elf32_phdr *phdr = elf_pheader(hdr);
+    
+    static void *src_ptr;
+    static void *dst_ptr;
+    static int len;
+    uint32_t lowest = 0xFFFFFFFF;
+    uint32_t highest = 0x0;
     
     for(int i = 0; i < hdr->e_phnum; i++) {
         struct elf32_phdr *p = &phdr[i];
         
         if(p->p_type == PT_LOAD) {
+            if(p->p_vaddr < lowest)
+                lowest = p->p_vaddr;
+            if(p->p_vaddr + p->p_memsz > highest)
+                highest = p->p_vaddr + p->p_memsz;
             for(int i = 0; i < p->p_memsz; i += 0x1000) {
-                void *pa = frame_alloc_d(pdir, p->p_vaddr + i, PAGE_RW | PAGE_USER);
-                void *aa = (void*)(((uint32_t)elf + p->p_offset + i));
-                copy_page_physical(aa, pa);
+                frame_alloc_d(proc->p_pdir, p->p_vaddr + i, PAGE_RW | PAGE_USER);
             }
-        
+            dst_ptr = p->p_vaddr;
+            src_ptr = ((uint32_t)elf + p->p_offset);
+            len = p->p_filesz;
+            switch_page_directory(proc->p_pdir);
+            memcpy(dst_ptr, src_ptr, len);
+            switch_page_directory(current_proc->p_pdir);
         }
     }
+    frame_alloc_d(proc->p_pdir, proc->p_mbreak, PAGE_RW | PAGE_USER);
+    proc->p_mstart = lowest & 0xFFFFF000;
+    proc->p_mbreak = (highest & 0xFFFFF000) + 0x1000;
     
+    elf_alloc_sections_v(proc, elf);
 }
 
 /*
@@ -174,7 +207,7 @@ static int elf_get_symval(struct elf32_ehdr *hdr, int table, int idx)
 static int elf_move_symbols(struct elf32_ehdr *hdr)
 {
     struct elf32_shdr *shdr = elf_sheader(hdr);
-
+    
     for (int i = 0; i < hdr->e_shnum; i++) {
         struct elf32_shdr *section = &shdr[i];
 
@@ -205,12 +238,37 @@ static int elf_alloc_sections(struct elf32_ehdr *hdr)
                 void *mem = kalloc(section->sh_size);
                 memset(mem, 0, section->sh_size);
                 section->sh_offset = (int)mem - (int)hdr;
+                
             }
         }
     }
     return 0;
 }
 
+static int elf_alloc_sections_v(struct process *proc, struct elf32_ehdr *hdr)
+{
+    struct elf32_shdr *shdr = elf_sheader(hdr);
+    static int size;
+    static int addr;
+    
+    for (int i = 0; i < hdr->e_shnum; i++) {
+        struct elf32_shdr *section = &shdr[i];
+
+        if (section->sh_type == SHT_NOBITS) {
+            if (!section->sh_size)
+                continue;
+            if (section->sh_flags & SHF_ALLOC) {
+                size = section->sh_size;
+                addr = section->sh_addr;
+                switch_page_directory(proc->p_pdir);
+                memset((void*)addr, 0, size);
+                switch_page_directory(current_proc->p_pdir);
+                
+            }
+        }
+    }
+    return 0;
+}
 
 /*
  * Begins relocating an ELF file

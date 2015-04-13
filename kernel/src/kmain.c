@@ -50,23 +50,20 @@ void kmain(multiboot_info_t *mbootinfo)
 {
     void *heap_start = *(uint32_t *)(mbootinfo->mods_addr + 4);
     void *module_start = *(uint32_t *)(mbootinfo->mods_addr);
-
+    
     init_kheap(heap_start);
-    init_textscreen();
-    init_serial();
-    init_paging();
-    klog(1);
-    klog_output(serial_dev1);
-    init_ramdisk(module_start, 0);
-    init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
-    parse_symbol_file();
     init_gdt();
     init_idt();
-    init_devfs();
+    init_paging();
+    klog(1);
+    init_serial();
     init_pit(50);
-    init_syscalls();
+    klog_output(serial_dev1);
+    init_ramdisk(module_start, 0);
     init_procfs();
-    init_sched(kthread_main);
+    init_devfs();
+    init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
+    init_sched(kthread_main, mbootinfo);
     
     while (1);
 }
@@ -77,14 +74,15 @@ static void kthread_test();
  * Entry point for the kernel thread (Once we have the
  * schedular enabled)
  */
-static void kthread_main()
+static void kthread_main(multiboot_info_t *mbootinfo)
 {
+    parse_symbol_file();
+    init_syscalls();
     printk(KERN_DEBUG "Kernel thread initialized\n");
     init_boot_modules();
     printk(KERN_DEBUG "Infinity kernel initialization complete. Going idle NOW!\n");
     event_dispatch(KERNEL_INIT, NULL);
     extern void init_debug_shell();
-    extern struct page_directory *current_directory;
     init_debug_shell();
     
     while (1) {

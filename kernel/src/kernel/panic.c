@@ -28,19 +28,19 @@
 #include <infinity/interrupt.h>
 #include <infinity/kernel.h>
 
-extern struct device textscreen_device;
-
 static void display_registers(struct regs *regs);
 static void display_message(const char *format, va_list argp);
 static void shut_it_down_charlie_brown();
+
 /*
- * Gracefully brings the kernel down in the
- * result of a fatal error
+ * Brings the kernel a swift halt displaying a 
+ * message
  * @param format    The format of the message to display
  */
 void panic(const char *format, ...)
 {
     asm("cli");
+    release_all_locks();
     va_list argp;
     va_start(argp, format);
     display_message(format, argp);
@@ -49,8 +49,14 @@ void panic(const char *format, ...)
     shut_it_down_charlie_brown();
 }
 
+/*
+ * Brings the kernel a swift halt displaying a 
+ * message AND CPU registers as an added bonus
+ * @param format    The format of the message to display
+ */
 void panic_cpu(struct regs *r, const char *format, ...)
 {
+    release_all_locks();
     va_list argp;
     va_start(argp, format);
     display_message(format, argp);
@@ -77,6 +83,8 @@ static void display_registers(struct regs *regs)
     } else {
         printk(KERN_EMERG "EIP is at <0x%x>\n", regs->eip);
     }
+    printk(KERN_EMERG "EAX: %p EBX: %p ECX: %p EDX: %p\n", regs->eax, regs->ebx, regs->ecx, regs->edx); 
+    printk(KERN_EMERG "ESI: %p EDI: %p EBP: %p ESP: %p\n\n", regs->esi, regs->edi, regs->ebp, regs->esp); 
 }
 
 static void shut_it_down_charlie_brown()

@@ -20,13 +20,14 @@
  * Driver for a kernel terminal emulator using the VBE frame buffer
  */
 
-
+#include <stdarg.h>
 #include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/tty.h>
 #include <infinity/common.h>
 #include <infinity/device.h>
 #include <infinity/fcntl.h>
+#include <infinity/sync.h>
 #include <infinity/drivers/framebuffer.h>
 #include "fb_font.h"
 
@@ -35,6 +36,7 @@
 
 struct fb_tty_info {
     int                 position;
+    int                 prev_position;
     int                 width;
     int                 height;
     int                 fg_color;
@@ -50,9 +52,20 @@ struct fb_tty_info {
     char                input_pos;
     char *              z_buf;
     int *               wallpaper;
+    spinlock_t          lock;
     struct fb_info *    f_info;
 };
-const int fb_pallete[] = {0x000000, 0xAA0000, 0x00AA00, 0xAA5500, 0x0000AA, 0xAA00AA, 0x00AAAA, 0xAAAAAA};
+/*
+ *  Default: 0x000000, 0xAA0000, 0x00AA00, 0xAA5500, 0x0000AA, 0xAA00AA, 0x00AAAA, 0xAAAAAA
+ *  Theme 1 (dark) 0x383332, 0x745E54, 0x54745E, 0x746E54, 0x5E5474, 0x6E5474, 0x54746E, 0x918B88
+ *  Theme 1 (bright) 0x4B483F, 0xB0998E, 0x8EB099, 0xB0AA8E, 0x998EB0, 0xAA8EB0, 0x8EB0AA, 0xC7C1BD
+ * 
+ */
+ //0x353540, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b
+
+ 
+const int fb_pallete[] =    {0x353540, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
+const int fb_pallete_b[] =  {0x545466, 0xb26f7a, 0x9db270, 0xb28c55, 0x7086b2, 0x9c77b2, 0x82a2b2, 0xb8b8c8};
 
 static void fb_putc(struct fb_tty_info *info, char c);
 static void fb_putc_esc(struct fb_tty_info *info, char c);
@@ -65,6 +78,7 @@ static void fb_scroll(struct fb_tty_info *info);
 static void fb_clear(struct fb_tty_info *info);
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr);
 static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr);
+static int fb_tty_ioctl(void *tag, unsigned long request, va_list argp);
 static void fb_tty_recieve(struct tty *t, char c);
 static char fb_tty_getc(struct fb_tty_info *info);
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg);
@@ -83,16 +97,11 @@ void init_fbtty(struct fb_info *info)
     fb_tty->t_device->dev_tag = t_info;
     fb_tty->t_device->write = fb_tty_write;
     fb_tty->t_device->read = fb_tty_read;
+    fb_tty->t_device->ioctl = fb_tty_ioctl;
     fb_tty->writec = fb_tty_recieve;
     fb_reset(t_info);
     set_tty(fb_tty);
     klog_output(fb_tty->t_device);
-    t_info->wallpaper = kalloc(800 * 600 * 4);
-    struct file *bg = fopen("/lib/infinity/avril.raster", O_RDWR);
-  
-    fread(bg, t_info->wallpaper, 0, 800 * 600 * 4);
-    
-    fclose(bg);
 }
 
 /*
@@ -158,6 +167,12 @@ static void fb_putc_esc(struct fb_tty_info *info, char c)
     } else if(c == 'm' && info->escape_buf[0] == '[') { 
         fb_set_attrs(info, info->escape_buf);
         info->escaped = 0;
+    } else if (c == 's' && info->escape_buf[0] == '[') {
+        info->prev_position = info->position;
+        info->escaped = 0;
+    } else if (c == 'u' && info->escape_buf[0] == '[') {
+        info->position = info->prev_position;
+        info->escaped = 0;
     } else if ((c == 'H' || c == 'f') && info->escape_pos == 0) {
         fb_set_home(info, info->escape_buf);
         info->escaped = 0;
@@ -203,15 +218,11 @@ static int fb_set_attr(struct fb_tty_info *info, int i, int *attributes)
     int a = attributes[i];
     if(a >= 30 && a <= 37) {
         int col = a - 30;
-        info->fg_color = fb_pallete[col];
-        if(info->bright)
-            info->fg_color += 0x555555;
+        info->fg_color = info->bright ? fb_pallete_b[col] : fb_pallete[col];
         return 1;
     } else if(a >= 40 && a <= 47) {
         int col = a - 40;
-        info->bg_color = fb_pallete[col];
-        if(info->bright)
-            info->bg_color += 0x555555;
+        info->bg_color = info->bright ? fb_pallete_b[col] : fb_pallete[col];
         return 1;
     }
     
@@ -266,8 +277,8 @@ static void fb_reset(struct fb_tty_info *info)
     info->bright = 0;
     info->underline = 0;
     info->hidden = 0;
-    info->fg_color = fb_pallete[7];
-    info->bg_color = 0xFF000000;
+    info->fg_color = 0x839496;
+    info->bg_color = 0x09090d;
     info->transparency_index = 0xFF000000;
 }
 
@@ -305,7 +316,7 @@ static void fb_clear(struct fb_tty_info *info)
     int i = 0;
     for(int y = 0; y < 600; y++) {
         for(int x = 0; x < 800; x++) {
-            fb_set_pixel(info, x, y, info->wallpaper[i++]);
+            fb_set_pixel(info, x, y, info->bg_color);
         }
     }
 }
@@ -313,9 +324,11 @@ static void fb_clear(struct fb_tty_info *info)
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr)
 {
     struct fb_tty_info *info = (struct fb_tty_info*)tag;
+    spin_lock(info->lock);
     for(int i = 0; i < len; i++) {
         fb_putc(info, msg[i]);      
     }
+    spin_unlock(info->lock);
     return len;
 }
 
@@ -329,15 +342,36 @@ static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr)
     while(i < len) {
         char c = fb_tty_getc(info);
         if(c == '\n') {
+            buf[i++] = c;
             break;
         } else if (c == '\b') {
-          buf[--i] = 0;  
-        } else {
+            if(i != 0)
+                buf[--i] = 0;  
+        } else{
             buf[i++] = c;
         }
     }
     buf[i++] = 0;
-    return len;
+    return i;
+}
+
+static int fb_tty_ioctl(void *tag, unsigned long request, va_list argp)
+{
+    struct fb_tty_info *info = (struct fb_tty_info*)tag;
+    struct tty_size rsize;
+    
+    switch(request) {
+        case TIOCGWINSZ:
+            rsize.t_width = info->width;
+            rsize.t_height = info->height;
+            rsize.t_xpixel = info->width * FONT_WIDTH;
+            rsize.t_ypixel = info->height * FONT_HEIGHT;
+            memcpy(va_arg(argp, struct tty_size*), &rsize, sizeof(struct tty_size));
+            break;
+        default:
+            return -1;
+    }
+    return 0;
 }
 
 /*

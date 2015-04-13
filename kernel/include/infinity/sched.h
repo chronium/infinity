@@ -27,6 +27,12 @@
 #define BEGIN_CRITICAL_REGION   asm ("cli");
 #define END_CRITICAL_REGION     asm ("sti");
 
+#define P_WAIT      0        
+#define P_NOWAIT    1
+#define P_DETACH    4
+#define P_SUSPEND   8
+#define P_CHILD     16
+
 struct process {
     char                    p_name[64];
     pid_t                   p_id;
@@ -36,6 +42,7 @@ struct process {
     int                     p_ttl;
     int                     p_status;
     int                     p_nextfd;
+    char *                  p_wd;
     void *                  p_mstart;
     void *                  p_mbreak;
     void *                  p_esp;
@@ -52,9 +59,10 @@ struct task {
 
 extern struct process *current_proc;
 
-void init_sched(void *callback);
+void init_sched(void *callback, void *args);
 int spawnve(int mode, char *path, char **argv, char **envp);
 void thread_yield();
+void *sbrk(int delta);
 void exit(int status);
 pid_t waitpid(pid_t id, int *status);
 pid_t getpid();

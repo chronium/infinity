@@ -36,10 +36,16 @@
 #define F_GETFL         3
 #define F_SETFL         4
 
+/* Seeking */
+#define SEEK_SET                0       // Seek relative to begining of file
+#define SEEK_CUR                1       // Seek relative to current file position
+#define SEEK_END                2       // Seek relative to end of file
+
 extern int fcntl(int fd, int cmd, ...);
 extern int open(const char *path, int flags);
 extern int close(int fd);
 extern size_t read(int fd, void *buf, size_t nbytes);
 extern size_t write(int _fd, const void *buf, size_t nbytes);
-
+int lseek(int fd, int offset, int whence);
+int fstat(int fd, struct stat *buf);
 #endif

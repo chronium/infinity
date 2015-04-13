@@ -26,6 +26,9 @@
 #include <infinity/virtfs.h>
 #include <infinity/syscalls.h>
 #include <infinity/sched.h>
+#include <infinity/sync.h>
+#include <infinity/event.h>
+#include <infinity/fcntl.h>
 #include <infinity/fildes.h>
 
 
@@ -42,7 +45,7 @@ static void remove_fildes(struct fildes *fd);
  */
 int open(const char *path, int mode)
 {
-    struct file *f = fopen(path, mode);
+    struct file *f = virtfs_open(path);
     if(f) {
         struct fildes *fd = (struct fildes*)kalloc(sizeof(struct fildes));
         fd->fd_num = current_proc->p_nextfd++;
@@ -68,7 +71,7 @@ int close(int fd)
         f->fd_file->f_refs--;
         remove_fildes(f);
         if(f->fd_file->f_refs <= 0) {
-            fclose(f);
+            //fclose(f);
         }
     } else {
         return -1;
@@ -85,11 +88,16 @@ int close(int fd)
 size_t write(int fd, const void *buf, size_t n)
 {
     struct fildes *f = get_fildes(fd);
+    struct file *ino = f->fd_file;
     if(f) {
-        return fwrite(f->fd_file, buf, 0, n);
+        spin_lock(&ino->f_lock);
+        size_t written = ino->write(ino, buf, f->fd_pos, n); //virtfs_write(ino, buf, f->fd_pos, n);
+        spin_unlock(&ino->f_lock);
+        return written;
     } else {
         return -1;
     }
+    
 }
 
 /*
@@ -102,8 +110,39 @@ size_t write(int fd, const void *buf, size_t n)
 size_t read(int fd, void *buf, size_t n)
 {
     struct fildes *f = get_fildes(fd);
+    struct file *ino = f->fd_file;
     if(f) {
-        return fread(f->fd_file, buf, 0, n);
+        size_t bytes_read = ino->read(ino, buf, f->fd_pos, n);
+        f->fd_pos += bytes_read;
+        return bytes_read;
+    } else {
+        return -1;
+    }
+}
+
+int lseek(int fd, int offset, int whence)
+{
+    struct fildes *f = get_fildes(fd);
+    if(f) {
+        switch(whence) {
+        case SEEK_SET:
+            f->fd_pos = offset;
+            return f->fd_pos;
+        case SEEK_CUR:
+            f->fd_pos += offset;
+            return f->fd_pos;
+        }
+    }
+    return -1;
+}
+
+int fstat(int fd, struct stat *buf)
+{
+    struct fildes *f = get_fildes(fd);
+    struct file *ino = f->fd_file;
+    if(f) {
+        ino->f_fs->fstat(ino->f_dev, ino->f_ino->i_ino, buf);
+        return 0;
     } else {
         return -1;
     }
@@ -130,6 +169,7 @@ static struct fildes *get_fildes(int num)
  */
 static void add_fildes(struct fildes *fd)
 {
+    fd->fd_owner = current_proc;
     struct fildes *i = current_proc->p_fildes_table;
     if(!i) {
         current_proc->p_fildes_table = fd;
@@ -139,10 +179,12 @@ static void add_fildes(struct fildes *fd)
         }
         i->next = fd;
     }
+    event_dispatch(FILDES_OPEN, fd);
 }
 
 static void remove_fildes(struct fildes *fd)
 {
+    event_dispatch(FILDES_CLOSE, fd);
     struct fildes *i = current_proc->p_fildes_table;
     if(i == fd) {
         current_proc->p_fildes_table = i->next;

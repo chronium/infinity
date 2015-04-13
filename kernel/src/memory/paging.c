@@ -29,7 +29,7 @@
 #include <infinity/heap.h>
 #include <infinity/paging.h>
 #include <infinity/memmanager.h>
-//#include "page_fault.h"
+#include "page_fault.h"
 
 #define IDENTITY_MAP_END                0x4000000
 
@@ -103,7 +103,7 @@ void *get_physical_addr(struct page_directory *pdir, void *vaddr)
  */
 void init_paging()
 {
-	//request_isr(14, page_fault_handler);
+	request_isr(14, page_fault_handler);
 
 	kernel_directory = (struct page_directory *)malloc_pa(sizeof(struct page_directory));
 	memset(kernel_directory, 0, sizeof(struct page_directory));

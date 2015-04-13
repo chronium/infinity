@@ -28,7 +28,8 @@ enum events {
     KERNEL_SHUTDOWN =   1,
     PROCESS_CREATE =    2,
     PROCESS_DESTROY =   3,
-    
+    FILDES_OPEN =       4,
+    FILDES_CLOSE =      5,
 };
 
 void event_subscribe(uint32_t e, event_handler_t handler);

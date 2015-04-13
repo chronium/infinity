@@ -18,7 +18,9 @@
 /*
  * string.c
  * Provides a simple implemenation of most standard
- * string functions for the kernel to use
+ * string functions for the kernel to use. I'm not 
+ * going to lie, this code is pretty shit but I'm 
+ * too lazy to rewrite what alread works xD
  */
 
 #include <stddef.h>
@@ -152,7 +154,6 @@ int atoi(char *s)
     int final = 0;
     int mul = 1;
     int len = strlen(s);
-
     reverse(s);
     for (int i = 0; i < len; i++) {
         char b = s[i];
@@ -168,8 +169,7 @@ int strtol(char *s, int base)
     int final = 0;
     int mul = 1;
     int len = strlen(s);
-
-    //reverse(s);
+    
     for (int i = (len - 1); i >= 0; i--) {
         char b = s[i];
         int RealDigit;
@@ -191,10 +191,49 @@ void itox(char *s, unsigned int i)
     do {
         d = i % 16;
         i = (i - d) / 16;
-        s[p++] = (char)d + (d < 10 ? 48 : 'A' - 10);
+        s[p] = (char)d + (d < 10 ? 48 : 'A' - 10);
+        p = p + 1;
     } while (i > 0);
-    reverse(s);
     s[p] = 0;
+    reverse(s);
+}
+
+static int printf_s(char *dest, char *str)
+{
+    int len = strlen(str);
+    memcpy(dest, str, len);
+    return len;
+}
+
+static int printf_d(char *dest, int d)
+{
+    char nbuf[16];
+    memset(nbuf, 0, 16);
+    itox(nbuf, d);
+    int len = strlen(nbuf);
+    strcpy(dest, nbuf);
+    return len;
+}
+
+static int printf_x(char *dest, int d)
+{
+    char nbuf[16];
+    memset(nbuf, 0, 16);
+    itox(nbuf, d);
+    int len = strlen(nbuf);
+    strcpy(dest, nbuf);
+    return len;
+}
+
+static int printf_p(char *dest, int d)
+{
+    char nbuf[16];
+    memset(nbuf, 0, 16);
+    itox(nbuf, d);
+    int len = strlen(nbuf);
+    memset(dest, '0', 8 - len);
+    strcpy(dest + 8 - len, nbuf);
+    return 8;
 }
 
 void vsprintf(char *dest, const char *format, va_list argp)
@@ -212,36 +251,28 @@ void vsprintf(char *dest, const char *format, va_list argp)
                 dest[ptr++] = '%';
                 break;
             case 's':
-                strcpy((char *)(dest + ptr), va_arg(argp, char *));
-                ptr = strlen(dest);
+                dest += printf_s(dest, va_arg(argp, char *));
                 break;
             case 'd':
-                itoa(nbuf, va_arg(argp, int));
-                strcpy((char *)(dest + ptr), nbuf);
-                dest += strlen(nbuf);
+                dest += printf_d(dest, va_arg(argp, int));
                 break;
             case 'x':
-                itox(nbuf, va_arg(argp, int));
-                strcpy((char *)(dest + ptr), nbuf);
-                dest += strlen(nbuf);
+                dest += printf_x(dest, va_arg(argp, int));
                 break;
             case 'p':
-                memset(nbuf, 0, 16);
-                memset(nbuf, '0', 8);
-                itox(nbuf, va_arg(argp, int));
-                strcpy((char *)(dest + ptr), nbuf);
-                nbuf[8] = 0;
-                dest += 8;
+                dest += printf_p(dest, va_arg(argp, int));
                 break;
             case 'c':
-                dest[ptr++] = va_arg(argp, int);
+                *dest = va_arg(argp, int);
+                ++dest;
                 break;
             default:
 
                 break;
             }
         } else {
-            dest[ptr++] = c;
+            *dest = c;
+            ++dest;
         }
     }
 }

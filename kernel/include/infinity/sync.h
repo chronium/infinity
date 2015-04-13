@@ -21,6 +21,7 @@
 
 #include <infinity/types.h>
 
+void release_all_locks();
 void spin_lock(spinlock_t *lock);
 void spin_unlock(spinlock_t *lock);
 void mutex_lock(mutex_t *lock);

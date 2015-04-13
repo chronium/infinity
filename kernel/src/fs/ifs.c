@@ -42,6 +42,7 @@ static size_t ifs_read_file(struct device *dev, ino_t ino, char *buff, off_t add
 static size_t ifs_write_file(struct device *dev, ino_t ino, char *buff, off_t addr, size_t len);
 static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent);
 static int ifs_open(struct device *dev, struct file *f, const char *path, int oflags);
+static int ifs_read_ino(struct device *dev, struct inode *ino, const char *path);
 static int ifs_mkdir(struct device *dev, const char *dir);
 
 void register_ifs()
@@ -53,6 +54,7 @@ void register_ifs()
     ifs_filesystem.readdir = ifs_read_dir;
     ifs_filesystem.fstat = ifs_fstat;
     ifs_filesystem.mkdir = ifs_mkdir;
+    ifs_filesystem.readino = ifs_read_ino;
     register_fs(&ifs_filesystem);
 }
 
@@ -157,7 +159,7 @@ static size_t ifs_read_file(struct device *dev, ino_t ino, char *buff, off_t add
     struct ifs_entry entry;
     struct ifs_volume_hdr vol_header;
     size_t bytes_read = 0;
-    
+
     device_read(dev, &vol_header, 0, sizeof(struct ifs_volume_hdr));
     device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
     
@@ -343,19 +345,24 @@ static int ifs_get_directory(struct device *dev, int parent, char *dir)
     return -1;
 }
 
-static int ifs_open(struct device *dev, struct file *f, const char *path, int oflags)
+static int ifs_read_ino(struct device *dev, struct inode *inos, const char *path)
 {
+    struct ifs_entry entry;
     if (ifs_get_directory(dev, 0, path) != -1) {
         ino_t ino = ifs_get_directory(dev, 0, path);
-        struct stat fstat;
-        ifs_fstat(dev, ino, &fstat);
-        f->f_len = fstat.st_size;
-        f->f_ino = ino;
-        f->f_flags = F_SUPPORT_READ | F_SUPPORT_WRITE;
+        device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
+        inos->i_ino = ino;
+        inos->i_size = entry.file_size;
+        inos->i_dev = dev->dev_id;
         return 0;
     } else {
         return -1;
     }
+}
+
+static int ifs_open(struct device *dev, struct file *f, const char *path, int oflags)
+{
+
 }
 
 

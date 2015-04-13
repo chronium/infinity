@@ -82,12 +82,12 @@ void unload_mod(struct module *mod)
  */
 void init_boot_modules()
 {
-    struct file *f = fopen("/lib/infinity/modules", O_RDONLY);
+    struct file *f = virtfs_open("/lib/infinity/modules");
 
     if (f) {
         struct dirent entry;
         int i = 0;
-        while (readdir(f, i, &entry) == 0) {
+        while (virtfs_readdir(f, i, &entry) == 0) {
             char file_name[256];
             memset(file_name, 0, 256);
             strcat(file_name, "/lib/infinity/modules/");
@@ -101,10 +101,11 @@ void init_boot_modules()
             i++;
         }
 
-        fclose(f);
+        //fclose(f);
     } else {
         printk(KERN_WARN "WARNING: Could not open up /lib/infinity/modules! Booting NO kernel modules!\n");
     }
+    
 }
 
 /*

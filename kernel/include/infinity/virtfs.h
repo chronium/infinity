@@ -32,12 +32,18 @@
 struct mntpoint;
 struct fildes;
 
+struct inode {
+    ino_t               i_ino;
+    uid_t               i_uid;
+    gid_t               i_gid;
+    dev_t               i_dev;
+    uint32_t            i_size;
+};
+
 struct file {
-    ino_t               f_ino;
-    uint64_t            f_pos;
-    uint64_t            f_len;
-    uint32_t            f_flags;
     uint32_t            f_refs;
+    uint32_t            f_len;
+    struct inode *      f_ino;
     spinlock_t          f_lock;
     void    *           f_tag;
     struct device *     f_dev;
@@ -48,16 +54,32 @@ struct file {
     struct file *       next;
 };
 
+struct stat {
+    unsigned short  st_dev;
+    unsigned short  st_ino;
+    unsigned int    st_mode;
+    unsigned short  st_nlink;
+    unsigned short  st_uid;
+    unsigned short  st_gid;
+    unsigned short  st_rdev;
+    unsigned int    st_size;
+    unsigned int    st_atime;
+    unsigned int    st_mtime;
+    unsigned int    st_ctime;
+};
+
 struct file_table_entry {
     struct file *               file_entry;
     struct file_table_entry *   next;
 };
 
 struct fildes {
-    int             fd_num;
-    uint32_t        fd_flags;
-    struct file *   fd_file;
-    struct fildes * next;
+    int                 fd_num;
+    uint32_t            fd_flags;
+    uint32_t            fd_pos;
+    struct process *    fd_owner;
+    struct file *       fd_file;
+    struct fildes *     next;
 };
 
 struct mntpoint {
@@ -77,18 +99,22 @@ struct filesystem {
     int         (*read)             (struct device *dev, ino_t ino, char *data, off_t off, size_t len);
     int         (*readdir)          (struct device *dev, ino_t ino, int d, struct dirent *dent);
     int         (*rename)           (struct device *dev, ino_t ino, const char *name);
+    int         (*ioctl)            (struct device *dev, ino_t ino, unsigned long request, ...);
     int         (*fstat)            (struct device *dev, ino_t ino, struct stat *stat_struct);
+    int         (*readino)          (struct device *dev, struct inode *ino, const char *path);
     struct filesystem * next;
 };
 
 struct file *fopen(const char *path, int oflag);
-int fclose(struct file *f);
-int fread(struct file *fd, char *buf, off_t off, size_t len);
-int fwrite(struct file *fd, const char *buf, off_t off, size_t len);
-int readdir(struct file *f, int d, struct dirent *dent);
-int unlink(struct file *fd);
-int fpipe(struct file *f[]);
 
+int fpipe(struct file *f[]);
+int fioctl(int fd, unsigned long request, ...);
+
+int stat(const char *path, struct stat *s);
+
+struct file *virtfs_open(const char *path);
+struct file *virtfs_close(const char *path);
+int virtfs_readdir(struct file *f, int d, struct dirent *dent);
 int virtfs_init(struct device *dev, struct filesystem *initrd);
 struct mntpoint *virtfs_find_mount(const char *org_path, char **rel_path);
 int virtfs_mount(struct device *dev, struct filesystem *fs, const char *path);

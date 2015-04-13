@@ -18,12 +18,22 @@
 #ifndef INFINITY_TTY_H
 #define INFINITY_TTY_H
 
+#include <stdint.h>
 #include <infinity/device.h>
+
+#define TIOCGWINSZ  1
 
 struct tty {
     struct device * t_device;
     void            (*writec) (struct tty *t, char c);
     struct tty *    next;
+};
+
+struct tty_size {
+    uint16_t        t_width;
+    uint16_t        t_height;
+    uint16_t        t_xpixel;
+    uint16_t        t_ypixel;
 };
 
 struct tty *create_tty();

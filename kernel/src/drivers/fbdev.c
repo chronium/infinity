@@ -47,7 +47,7 @@ void init_fb(vbe_info_t *info)
     tag->depth = info->pitch / info->Xres;
     tag->frame_buffer = (char*)info->physbase;
     tag->frame_buffer_length = info->Yres * info->pitch;
-    fb_dev = device_create(CHAR_DEVICE, "fb0");
+    fb_dev = device_create(CHAR_DEVICE, "lfb");
     fb_dev->write = fb_write;
     fb_dev->read = fb_read;
     fb_dev->dev_tag = tag;
@@ -57,7 +57,7 @@ void init_fb(vbe_info_t *info)
         page_alloc(current_directory, tag->frame_buffer + i, tag->frame_buffer + i, 1, 1);
     }
     init_fbtty(tag);
-    sexify_framebuffer(tag, tag->frame_buffer);
+    //sexify_framebuffer(tag, tag->frame_buffer);
 }
 
 static inline void fb_set_pixel(struct fb_info *info, int x, int y, int c)
@@ -74,11 +74,11 @@ static inline void fb_set_pixel(struct fb_info *info, int x, int y, int c)
  */
 static void sexify_framebuffer(struct fb_info *info, char *fb)
 {
-    struct file *bg = fopen("/lib/infinity/avril.raster", O_RDWR);
-    if(bg) {
+    int bg = open("/lib/infinity/avril.raster", O_RDWR);
+    if(bg != -1) {
         int *zbuf = (int*)kalloc(800 * 600 * 4);
         
-        fread(bg, zbuf, 0, 800 * 600 * 4);
+        read(bg, zbuf, 800 * 600 * 4);
         int i = 0 ;
         for(int y = 0; y < 600; y++) {
             for(int x = 0; x < 800; x++) {
@@ -87,10 +87,11 @@ static void sexify_framebuffer(struct fb_info *info, char *fb)
             }
         }
         kfree(zbuf);
-        fclose(bg);
+        close(bg);
     } else {
         printk(KERN_WARN "Booting WITHOUT sexy photo!\n");
     }
+    
 }
  
 static size_t fb_write(void *tag, const char *data, size_t size, uint32_t addr)
