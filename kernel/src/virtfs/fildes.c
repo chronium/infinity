@@ -21,6 +21,7 @@
  * syscalls. 
  */
  
+#include <stdarg.h>
 #include <infinity/heap.h>
 #include <infinity/kernel.h>
 #include <infinity/virtfs.h>
@@ -38,6 +39,29 @@ static struct fildes *get_fildes(int num);
 static void add_fildes(struct fildes *fd);
 static void remove_fildes(struct fildes *fd);
 
+int fcntl(int fd, int cmd, int arg1, int arg2)
+{
+    struct fildes *old ;
+    struct fildes *f = get_fildes(fd);
+    if(f) {
+        switch(cmd) {
+            case F_DUPFD:
+                old = get_fildes(arg1);
+                if(old) {
+                    close(arg1);
+                }
+                struct fildes *fdes = (struct fildes*)kalloc(sizeof(struct fildes));
+                fdes->fd_num = arg1;
+                fdes->next = NULL;
+                fdes->fd_file = f->fd_file;
+                add_fildes(fdes);
+                f->fd_file->f_refs++;
+                return 0;
+        }
+    }
+    return -1;
+}
+
 /*
  * Opens up a file, returning a file descriptor
  * @param path      The path to the file to open
@@ -47,13 +71,7 @@ int open(const char *path, int mode)
 {
     struct file *f = virtfs_open(path);
     if(f) {
-        struct fildes *fd = (struct fildes*)kalloc(sizeof(struct fildes));
-        fd->fd_num = current_proc->p_nextfd++;
-        fd->next = NULL;
-        fd->fd_file = f;
-        add_fildes(fd);
-        f->f_refs++;
-        return fd->fd_num;
+        return create_fildes(f);
     } else {
         return -1;
     }
@@ -141,11 +159,32 @@ int fstat(int fd, struct stat *buf)
     struct fildes *f = get_fildes(fd);
     struct file *ino = f->fd_file;
     if(f) {
-        ino->f_fs->fstat(ino->f_dev, ino->f_ino->i_ino, buf);
-        return 0;
+        return ino->fstat(ino, buf);
     } else {
         return -1;
     }
+}
+
+int readdir(int fd, int i, struct dirent *buf)
+{
+    struct fildes *f = get_fildes(fd);
+    struct file *ino = f->fd_file;
+    if(f) {
+        return ino->f_fs->readdir(ino->f_dev, ino->f_ino->i_ino, i, buf);
+    } else {
+        return -1;
+    }
+}
+
+int create_fildes(struct file *f)
+{
+    struct fildes *fd = (struct fildes*)kalloc(sizeof(struct fildes));
+    fd->fd_num = current_proc->p_nextfd++;
+    fd->next = NULL;
+    fd->fd_file = f;
+    add_fildes(fd);
+    f->f_refs++;
+    return fd->fd_num;
 }
 
 /*

@@ -24,6 +24,7 @@
 #include <infinity/kernel.h>
 #include <infinity/dirent.h>
 #include <infinity/heap.h>
+#include <infinity/sched.h>
 #include <infinity/virtfs.h>
 
 struct mntpoint root;
@@ -40,6 +41,7 @@ static int virtfs_readino(struct inode *ino, const char *path);
 static int default_unlink(struct file *f);
 static int default_write(struct file *f, const char *data, off_t off, size_t len);
 static int default_read(struct file *f, char *buf, off_t off, size_t len);
+static int default_fstat(struct file *f, struct stat *st);
 
 /*
  * Initialize the virtual filesystem
@@ -110,18 +112,81 @@ int register_fs(struct filesystem *fs)
  * Creates a new directory
  * @param path      The path to the new directory
  */
-int mkdir(const char *path)
+int mkdir(const char *_path)
 {
+    char path[256];
+    char parent[256];
+    canonicalize_path(_path, path);
+    dirname(path, parent);
+    struct inode ino;
+    if(virtfs_readino(&ino, parent) == 0 && ((ino.i_uid == getuid() && (ino.i_mode & S_IWUSR)) ||
+        (ino.i_gid == getgid() && (ino.i_mode & S_IWGRP)) || (ino.i_mode & S_IWOTH))) {
+        char *rpath = NULL;
+        struct mntpoint *mnt = virtfs_find_mount(path, &rpath);
+        return mnt->mt_fs->mkdir(mnt->mt_dev, rpath, ino.i_mode);
+    }
+    return -1;
+    
+}
+
+int unlink(const char *_path)
+{
+    char path[256];
+    canonicalize_path(_path, path);
+    struct inode ino;
+    if(virtfs_readino(&ino, path) == 0 && ((ino.i_uid == getuid() && (ino.i_mode & S_IWUSR)) ||
+        (ino.i_gid == getgid() && (ino.i_mode & S_IWGRP)) || (ino.i_mode & S_IWOTH))) {
+        char *rpath = NULL;
+        struct mntpoint *mnt = virtfs_find_mount(path, &rpath);
+        return mnt->mt_fs->unlink(mnt->mt_dev, rpath);
+    }
+    return -1;
+}
+
+int rmdir(const char *path)
+{
+    struct dirent dent;
+    char buf[256];
+    struct file *d = virtfs_open(path);
+    if(d) {
+        int files_removed;
+        int removals_failed = 0;
+        do {
+            files_removed = 0;
+            int i = 0;
+            while(virtfs_readdir(d, i++, &dent) != -1) {
+                memset(buf, 0, 256);
+                if(path[0] == '/' && path[1] == 0)
+                    sprintf(buf, "/%s", dent.d_name);
+                else
+                    sprintf(buf, "%s/%s", path, dent.d_name);
+                if(dent.d_type == DT_DIR)
+                    rmdir(buf);
+                if(unlink(buf) == 0) {
+                    files_removed++;
+                } else {
+                    removals_failed++;
+                }
+            }
+        } while(files_removed > 0);
+        if(removals_failed == 0) 
+            return unlink(path);
+        else
+            return -1;
+        
+    }
+    return -1;
 }
 
 int stat(const char *path, struct stat *s)
 {
     struct inode ino;
-    virtfs_readino(&ino, path);
-	char *rpath = NULL;
-    struct mntpoint *mnt = virtfs_find_mount(path, &rpath);
-    return mnt->mt_fs->fstat(mnt->mt_dev, ino.i_ino, s);
-    
+    if(virtfs_readino(&ino, path) == 0) {
+        char *rpath = NULL;
+        struct mntpoint *mnt = virtfs_find_mount(path, &rpath);
+        return mnt->mt_fs->fstat(mnt->mt_dev, ino.i_ino, s);
+    }
+    return -1;
 }
 
 /*
@@ -167,7 +232,7 @@ struct file *virtfs_open(const char *path)
             f->f_dev = mnt->mt_dev;
             f->write = default_write;
             f->read = default_read;
-            f->unlink = default_unlink;
+            f->fstat = default_fstat;
             f->f_ino = (struct inode*)kalloc(sizeof(struct inode));
             memcpy(f->f_ino, &ino, sizeof(struct inode));
         }
@@ -177,9 +242,16 @@ struct file *virtfs_open(const char *path)
     return NULL;
 }
 
-static int default_unlink(struct file *f)
+int canonicalize_path(const char *path, char *buf) 
 {
-    return f->f_fs->delete(f->f_dev, f->f_ino->i_ino);
+    extern struct process *current_proc;
+    buf[0] = 0;
+    if(path[0] == '/') {
+        strcpy(buf, path);
+    } else {
+        sprintf(buf, "%s/%s", current_proc->p_wd, path);
+    }
+    return 0;
 }
 
 /*
@@ -196,6 +268,11 @@ static int default_write(struct file *f, const char *data, off_t off, size_t len
 static int default_read(struct file *f, char *buf, off_t off, size_t len)
 {
     return f->f_fs->read(f->f_dev, f->f_ino->i_ino, buf, off, len);
+}
+
+static int default_fstat(struct file *f, struct stat *st)
+{
+    return f->f_fs->fstat(f->f_dev, f->f_ino->i_ino, st);
 }
 
 /*

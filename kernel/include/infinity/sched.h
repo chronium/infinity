@@ -42,7 +42,7 @@ struct process {
     int                     p_ttl;
     int                     p_status;
     int                     p_nextfd;
-    char *                  p_wd;
+    char                    p_wd[512];
     void *                  p_mstart;
     void *                  p_mbreak;
     void *                  p_esp;
@@ -67,6 +67,11 @@ void exit(int status);
 pid_t waitpid(pid_t id, int *status);
 pid_t getpid();
 uid_t getuid();
+uid_t getgid();
+int setuid(uid_t uid);
+int setgid(gid_t gid);
+char *getwd(char *buf);
+int setwd(char *buf);
 pid_t fork();
 
 #endif

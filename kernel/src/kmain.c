@@ -68,8 +68,6 @@ void kmain(multiboot_info_t *mbootinfo)
     while (1);
 }
 
-static void kthread_test();
-
 /*
  * Entry point for the kernel thread (Once we have the
  * schedular enabled)
@@ -82,8 +80,8 @@ static void kthread_main(multiboot_info_t *mbootinfo)
     init_boot_modules();
     printk(KERN_DEBUG "Infinity kernel initialization complete. Going idle NOW!\n");
     event_dispatch(KERNEL_INIT, NULL);
-    extern void init_debug_shell();
-    init_debug_shell();
+    
+    spawnve(P_DETACH, "/sbin/init", NULL, NULL);
     
     while (1) {
         asm ("hlt"); // We are done. Stay here

@@ -43,6 +43,7 @@ struct task *task_list = NULL;
 struct process *proc_list = NULL;
 struct process *current_proc = NULL;
 
+static void copy_fildes(struct process *parent, struct process *child);
 static int *init_stack(struct page_directory *pdir, int *stack, int eip, uint32_t args);
 static int *init_stack_ve(struct page_directory *pdir, int *stack, int eip, char **args, char **environ);
 static char **copy_argv(char **argv);
@@ -136,18 +137,24 @@ int perform_context_switch(int esp)
 int spawnve(int mode, char *path, char **argv, char **envp)
 {
     BEGIN_CRITICAL_REGION;
-
+    //printk(KERN_INFO "Spawn %s\n", path);
     static char *s_path;
     static void *elf;
     s_path = path;
     
     struct process *nproc = (struct process*)kalloc(sizeof(struct process));
     nproc->p_id = pid_next++;
-    
+    nproc->p_uid = current_proc->p_uid;
+    nproc->p_gid = current_proc->p_gid;
+    strcpy(nproc->p_name, basename(path));
+    strcpy(nproc->p_wd, current_proc->p_wd);
     struct page_directory *ndir = (struct page_directory*)malloc_pa(sizeof(struct page_directory));
     
     memcpy(ndir, kernel_directory, sizeof(struct page_directory));
-
+    
+    if((mode & P_DETACH) == 0)
+        copy_fildes(current_proc, nproc);
+    
     for(int i = 0x4000000; i <= 0x4020000; i += 0x1000) {
         frame_alloc_d(ndir, (void*)i, PAGE_USER | PAGE_RW);
     }
@@ -235,6 +242,60 @@ uid_t getuid()
 }
 
 /*
+ * Gets the user ID number for this process
+ */
+uid_t getgid()
+{
+    return current_proc->p_gid;
+}
+
+
+int setuid(uid_t uid)
+{
+    if(getuid() == 0) {
+        current_proc->p_uid = uid;
+        return 0;
+    }
+    return -1;
+}
+
+int setgid(gid_t gid)
+{
+    if(getuid() == 0) {
+        current_proc->p_gid = gid;
+        return 0;
+    }
+    return -1;
+}
+
+/*
+ * Gets the current working directory
+ * @param buf       A buffer to store the current directory
+ */
+char *getwd(char *buf)
+{
+    strcpy(buf, current_proc->p_wd);
+    return buf;
+}
+
+/*
+ * Gets the current working directory
+ * @param buf       A buffer to store the current directory
+ */
+int setwd(char *buf)
+{
+    char tmp[128];
+    memset(tmp, 0, 128);
+    canonicalize_path(buf, tmp);
+    struct stat st;
+    if(stat(buf, &st) == 0) {
+        strcpy(current_proc->p_wd, tmp);
+        return 0;
+    }
+    return -1;
+}
+
+/*
  * Increment's the process break point
  * @param delta     How much to increment the break point
  */
@@ -246,7 +307,27 @@ void *sbrk(int delta)
         frame_alloc_d(current_proc->p_pdir, i, PAGE_USER | PAGE_RW);
     }
     current_proc->p_mbreak += delta;
-    return current_proc->p_mbreak + delta;
+    return current_proc->p_mbreak - delta;
+}
+
+/*
+ * Copies a process's file descriptors to its child
+ */
+static void copy_fildes(struct process *parent, struct process *child)
+{
+    struct fildes *i = parent->p_fildes_table;
+    struct fildes *last = NULL;
+    while(i) {
+        struct fildes *newdes = (struct fildes*)kalloc(sizeof(struct fildes));
+        memcpy(newdes, i, sizeof(struct fildes));
+        if(last)
+            last->next = newdes;
+        else
+            child->p_fildes_table = newdes;
+        last = newdes;
+        i = i->next;
+    }
+    child->p_nextfd = parent->p_nextfd;
 }
 
 /*
@@ -265,7 +346,7 @@ static void free_process()
     }
     
     remove_process(current_proc);
-	outb(0x20, 0x20);
+    outb(0x20, 0x20);
 }
 
 /*
@@ -293,8 +374,8 @@ static int *init_stack(struct page_directory *pdir, int *stack, int eip, uint32_
     s_stack = stack;
     s_ebp = stack + 60;
     
-	asm volatile ("mov %0, %%cr3" :: "r" (&pdir->tables_physical));
-	asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
+    asm volatile ("mov %0, %%cr3" :: "r" (&pdir->tables_physical));
+    asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
     
     *--s_stack = arg;   
     *--s_stack = 0;   
@@ -317,8 +398,8 @@ static int *init_stack(struct page_directory *pdir, int *stack, int eip, uint32_
     *--s_stack = 0x10;        
 
 
-	asm volatile ("mov %0, %%cr3" :: "r" (&current_directory->tables_physical));
-	asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
+    asm volatile ("mov %0, %%cr3" :: "r" (&current_directory->tables_physical));
+    asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
     
     return s_stack;
 }
@@ -335,8 +416,8 @@ static int *init_stack_ve(struct page_directory *pdir, int *stack, int eip, char
     s_ebp = stack + 60;
     s_args = copy_argv(args);
     
-	asm volatile ("mov %0, %%cr3" :: "r" (&pdir->tables_physical));
-	asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
+    asm volatile ("mov %0, %%cr3" :: "r" (&pdir->tables_physical));
+    asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
     
     *--s_stack = s_args;   
     *--s_stack = 0;   
@@ -356,8 +437,8 @@ static int *init_stack_ve(struct page_directory *pdir, int *stack, int eip, char
     *--s_stack = 0x10;        
     *--s_stack = 0x10;        
 
-	asm volatile ("mov %0, %%cr3" :: "r" (&current_directory->tables_physical));
-	asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
+    asm volatile ("mov %0, %%cr3" :: "r" (&current_directory->tables_physical));
+    asm volatile ("mov %cr3, %eax; mov %eax, %cr3;");
     
     return s_stack;
 }
@@ -369,19 +450,23 @@ static int *init_stack_ve(struct page_directory *pdir, int *stack, int eip, char
  */
 static char **copy_argv(char **argv)
 {
-    int argc = 0;
-    int i = 0;
-    while(argv[i++]) argc++;
-    char **real_argv = (char**)kalloc(sizeof(char*) * argc);
-    i = 0;
-    while(argv[i]) {
-        char *arg = argv[i];
-        int len = strlen(arg) + 1;
-        char *rarg = (char*)kalloc(len);
-        strcpy(rarg, arg);
-        real_argv[i++] = (char*)rarg;
+    if(argv) {
+        int argc = 0;
+        int i = 0;
+        while(argv[i++]) argc++;
+        char **real_argv = (char**)kalloc(sizeof(char*) * argc);
+        i = 0;
+        while(argv[i]) {
+            char *arg = argv[i];
+            int len = strlen(arg) + 1;
+            char *rarg = (char*)kalloc(len);
+            strcpy(rarg, arg);
+            real_argv[i++] = (char*)rarg;
+        }
+        return real_argv;
+    } else {
+        return NULL;
     }
-    return real_argv;
 }
 
 /*
@@ -392,13 +477,13 @@ static char **copy_argv(char **argv)
  */
 void schedule_task(struct task *tsk)
 {
-	if (task_list == NULL) {
-		task_list = tsk;
-		tsk->next = NULL;
-	} else {
-		tsk->next = task_list;
-		task_list = tsk;
-	}
+    if (task_list == NULL) {
+        task_list = tsk;
+        tsk->next = NULL;
+    } else {
+        tsk->next = task_list;
+        task_list = tsk;
+    }
 }
 
 /*
@@ -407,11 +492,11 @@ void schedule_task(struct task *tsk)
  */
 void dequeue_next_task()
 {
-	if (task_list) {
-		struct task *cur = task_list;
-		cur->task_handler(cur->data);
-		task_list = cur->next;
-	}
+    if (task_list) {
+        struct task *cur = task_list;
+        cur->task_handler(cur->data);
+        task_list = cur->next;
+    }
 }
 
 /*

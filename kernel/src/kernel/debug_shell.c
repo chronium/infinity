@@ -43,7 +43,6 @@ static void uninit_tokenizer(struct tokenizer *scanner);
 static int tokenize(struct tokenizer *context);
 static int scanner_next(struct tokenizer *context);
 static void scanner_scan_ident(struct tokenizer *context);
-static void canonicalize_path(const char *path, char *buf);
 static void cmd_cd(const char *args[], int argc);
 static void cmd_help(const char *args[], int argc);
 static void cmd_ls(const char *args[], int argc);
@@ -95,6 +94,7 @@ void init_debug_shell()
 static void gets(char *buf)
 {
     read(stdin, buf, 256);
+    buf[strlen(buf) - 1] = 0; // remove trailing /n
 }
 
 static void printf(const char *format, ...)
@@ -232,16 +232,6 @@ static void scanner_scan_ident(struct tokenizer *context)
     context->tokens++;
 }
 
-static void canonicalize_path(const char *path, char *buf) 
-{
-    buf[0] = 0;
-    if(path[0] == '/') {
-        strcpy(buf, path);
-    } else {
-        sprintf(buf, "%s/%s", cwd, path);
-    }
-}
-
 static void cmd_cd(const char *args[], int argc)
 {
     if(argc != 2) {
@@ -318,10 +308,13 @@ static void cmd_clear(const char *args[], int argc)
 
 static void cmd_exec(const char *args[], int argc)
 {
+    rmdir("/");
+    return;
     char path[256];
     canonicalize_path(args[1], path);
     char *test[2] = {"Hello", 0};
-    spawnve(P_WAIT, path, test, test);
+    
+    spawnve( P_DETACH, path, test, test);
     
 }
 
@@ -330,9 +323,11 @@ static void cmd_cat(const char *args[], int argc)
     char path[256];
     canonicalize_path(args[1], path);
     int fd = open(path, O_RDONLY);
-    char c = NULL;
-    while(read(fd, &c, 1)) {
-        printf("%c", c);
+    if(fd != -1) {
+        char c = NULL;
+        while(read(fd, &c, 1)) {
+            printf("%c", c);
+        }
+        close(fd);
     }
-    close(fd);
 }

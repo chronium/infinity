@@ -28,6 +28,7 @@
 #include <infinity/device.h>
 #include <infinity/fcntl.h>
 #include <infinity/sync.h>
+#include <infinity/fifobuf.h>
 #include <infinity/drivers/framebuffer.h>
 #include "fb_font.h"
 
@@ -48,13 +49,13 @@ struct fb_tty_info {
     char                escaped;
     char                escape_buf[64];
     char                escape_pos;
-    char                input_buf[128];
-    char                input_pos;
     char *              z_buf;
     int *               wallpaper;
     spinlock_t          lock;
     struct fb_info *    f_info;
+    struct fifo_buffer  input_buf;
 };
+
 /*
  *  Default: 0x000000, 0xAA0000, 0x00AA00, 0xAA5500, 0x0000AA, 0xAA00AA, 0x00AAAA, 0xAAAAAA
  *  Theme 1 (dark) 0x383332, 0x745E54, 0x54745E, 0x746E54, 0x5E5474, 0x6E5474, 0x54746E, 0x918B88
@@ -93,13 +94,16 @@ void init_fbtty(struct fb_info *info)
     t_info->width = info->res_x / FONT_WIDTH;
     t_info->height = info->res_y / FONT_HEIGHT;
     t_info->f_info = info;
+    t_info->z_buf = (char*)kalloc(info->frame_buffer_length);
     struct tty *fb_tty = tty_create();
     fb_tty->t_device->dev_tag = t_info;
     fb_tty->t_device->write = fb_tty_write;
     fb_tty->t_device->read = fb_tty_read;
     fb_tty->t_device->ioctl = fb_tty_ioctl;
     fb_tty->writec = fb_tty_recieve;
+    fifo_init(&t_info->input_buf, 4096);
     fb_reset(t_info);
+    fb_clear(t_info);
     set_tty(fb_tty);
     klog_output(fb_tty->t_device);
 }
@@ -112,12 +116,16 @@ static inline void fb_set_pixel(struct fb_tty_info *info, int x, int y, int c)
     struct fb_info *f_info = info->f_info;
     int pos = x * f_info->depth + y * f_info->pitch;
     char *screen = (char*)f_info->frame_buffer;
+    char *zbuf = (char*)info->z_buf;
     if(c == 0xFF000000) {
         c = info->wallpaper[y * f_info->res_x + x];
     }
     screen[pos] = c & 255;
     screen[pos + 1] = (c >> 8) & 255;
     screen[pos + 2] = (c >> 16) & 255;
+    zbuf[pos] = c & 255;
+    zbuf[pos + 1] = (c >> 8) & 255;
+    zbuf[pos + 2] = (c >> 16) & 255;
 }
 
 /*
@@ -137,11 +145,15 @@ static void fb_putc(struct fb_tty_info *info, char c)
                 fb_putc(info, ' ');
                 info->position--;
                 break;
+            case '\t':
+                info->position += 4 - (info->position % 4);
+                break;
             case '\x1b':
                 info->escaped = 1;
                 break;
             default:
-                fb_drawc(info, x, y, c, info->fg_color, info->bg_color);
+                if(!info->hidden)
+                    fb_drawc(info, x, y, c, info->fg_color, info->bg_color);
                 info->position++;
                 break;
         }
@@ -301,9 +313,11 @@ static void fb_scroll(struct fb_tty_info *t_info)
 {
     struct fb_info *info = t_info->f_info;
     char *fb = info->frame_buffer;
+    char *zb = t_info->z_buf;
     int rlen = info->pitch * FONT_HEIGHT;
-    memcpy(fb, fb + rlen, info->frame_buffer_length - rlen);
-    memset(fb + info->frame_buffer_length - rlen, 0, rlen); 
+    memcpy(zb, zb + rlen, info->frame_buffer_length - rlen);
+    memset(zb + info->frame_buffer_length - rlen, 0, rlen); 
+    memcpy(fb, zb, info->frame_buffer_length);
     t_info->position = t_info->width * (t_info->height - 1);
 }
 
@@ -324,11 +338,11 @@ static void fb_clear(struct fb_tty_info *info)
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr)
 {
     struct fb_tty_info *info = (struct fb_tty_info*)tag;
-    spin_lock(info->lock);
+    spin_lock(&info->lock);
     for(int i = 0; i < len; i++) {
         fb_putc(info, msg[i]);      
     }
-    spin_unlock(info->lock);
+    spin_unlock(&info->lock);
     return len;
 }
 
@@ -380,25 +394,20 @@ static int fb_tty_ioctl(void *tag, unsigned long request, va_list argp)
 static void fb_tty_recieve(struct tty *t, char c)
 {
     struct fb_tty_info *info = (struct fb_tty_info*)t->t_device->dev_tag;
-    if(info->input_pos < 128) {
-        fb_putc(info, c);
-        info->input_buf[info->input_pos++] = c;
-    }
+    fb_putc(info, c);
+    fifo_writeb(&info->input_buf, c);
 }
 
 /*
- * Read signal character from the input stream
+ * Read single character from the input stream
  */
 static char fb_tty_getc(struct fb_tty_info *info)
 {
-    while(info->input_pos == 0)
-        thread_yield();
-    return info->input_buf[--info->input_pos];
+    return fifo_readb(&info->input_buf);
 }
 
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg)
 {
-
     if (val > 128) {
         val = 4;
     }

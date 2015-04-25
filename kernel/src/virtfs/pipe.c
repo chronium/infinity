@@ -26,12 +26,14 @@
 #include <infinity/heap.h>
 #include <infinity/virtfs.h>
 #include <infinity/sched.h>
+#include <infinity/fifobuf.h>
 #include <infinity/sync.h>
 
 #define PIPE_BUFFER_SIZE   4096
 
 struct pipe_buf {
     int     p_pos; 
+    int     p_avail;
     char    p_buf[PIPE_BUFFER_SIZE];
 };
 
@@ -39,6 +41,7 @@ static void pipe_writec(struct pipe_buf *pipe, char c);
 static char pipe_readc(struct pipe_buf *pipe);
 static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len);
 static int pipe_read(struct file *fd, char *buf, off_t off, size_t len);
+static int pipe_fstat(struct file *f, struct stat *st);
 
 /*
  * Creates a unidirectional pipe with f[1] being the
@@ -46,6 +49,18 @@ static int pipe_read(struct file *fd, char *buf, off_t off, size_t len);
  * @param f     An array of struct file pointers, this 
  *              should be empty.
  */
+int pipe(int *pipedes)
+{
+    struct file *files[2];
+    int res = fpipe(files);
+    if(res == 0) {
+        pipedes[0] = create_fildes(files[0]);
+        pipedes[1] = create_fildes(files[1]);
+        return 0;
+    }
+    return -1;
+}
+ 
 int fpipe(struct file *f[])
 {
     struct file *f1 = kalloc(sizeof(struct file));
@@ -54,8 +69,10 @@ int fpipe(struct file *f[])
     memset(f2, 0, sizeof(struct file));
     f1->read = pipe_read;
     f2->write = pipe_write;
-    struct pipe_buf *buf = (struct pipe_buf*)kalloc(sizeof(struct pipe_buf));
-    buf->p_pos = 0;
+    f1->fstat = pipe_fstat;
+    f2->fstat = pipe_fstat;
+    struct fifo_buffer *buf = (struct fifo_buffer*)kalloc(sizeof(struct fifo_buffer));
+    fifo_init(buf, PIPE_BUFFER_SIZE);
     f1->f_tag = buf;
     f2->f_tag = buf;
     add_to_file_table(f1);
@@ -64,6 +81,7 @@ int fpipe(struct file *f[])
     //f1->f_flags |= F_SUPPORT_READ;
     f[0] = f1;
     f[1] = f2;
+    return 0;
 }
 
 /*
@@ -73,14 +91,7 @@ int fpipe(struct file *f[])
 static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
 {
     struct pipe_buf *pipe = fd->f_tag;
-    
-    while(pipe->p_pos + len > PIPE_BUFFER_SIZE);
-        thread_yield();
-        
-    spin_lock(fd->f_lock);
-    memcpy(pipe->p_buf, buf, len);
-    pipe->p_pos += len;
-    spin_unlock(fd->f_lock);
+    fifo_write(pipe, buf, len);
     return len;
 }
 
@@ -91,16 +102,11 @@ static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
 static int pipe_read(struct file *fd, char *buf, off_t off, size_t len)
 {
     struct pipe_buf *pipe = fd->f_tag;
-    
-    while(pipe->p_pos < len)
-        thread_yield();
-    
-    spin_lock(fd->f_lock);
-    int pp = pipe->p_buf;
-    buf[0] = pipe->p_buf[0];
-    memcpy(buf, pipe->p_buf, 1);
-    memcpy(pipe->p_buf, pipe->p_buf + len, PIPE_BUFFER_SIZE - len);
-    pipe->p_pos -= len;
-    spin_unlock(fd->f_lock);
+    fifo_read(pipe, buf, len);
     return len;
+}
+
+static int pipe_fstat(struct file *f, struct stat *st)
+{
+    return 0;
 }

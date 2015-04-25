@@ -8,9 +8,9 @@ static void process_directory(char *path, const char *rel_path);
 
 int main(int argc, char *argv[])
 {
-	void *img = (void *)malloc(5000000);
+	void *img = (void *)malloc(0x1000000);
 
-	ifs_create_image(img, 5000000);
+	ifs_create_image(img, 0x1000000);
 	char *outp = "initrd.img";
 	char *tdir = NULL;
 	for (int i = 1; i < argc; i++) {
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	FILE *dmp = fopen(outp, "w");
 
 	process_directory(tdir, "");
-	fwrite(img, 1, 5000000, dmp);
+	fwrite(img, 1, 0x1000000, dmp);
 
 	fclose(dmp);
 	return 0;

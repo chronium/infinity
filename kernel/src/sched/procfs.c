@@ -53,11 +53,15 @@ static struct procfs_entry *procfs_get_entry(struct process *proc);
 static int procfs_read_ino(struct device *dev, struct inode *ino, const char *path);
 static int procfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent);
 static int procfs_read_status(struct file *f, char *buf, off_t off, size_t len);
+static int procfs_fstat(struct device *dev, ino_t ino, struct stat *st);
+static int procfs_unlink(struct device *dev, const char *path);
 static struct procfs_entry *procfs_get_directory(struct procfs_entry *parent, const char *path);
 
 struct filesystem procfs = {
     .readino = procfs_read_ino,
-    .readdir = procfs_read_dir
+    .readdir = procfs_read_dir,
+    .fstat = procfs_fstat,
+    .unlink = procfs_unlink
 };
 
 
@@ -171,28 +175,30 @@ static void procfs_add_child(struct procfs_entry *parent, struct procfs_entry *c
 
 static void procfs_remove_child(struct procfs_entry *parent, struct procfs_entry *child)
 {
-    struct procfs_entry *i = parent->e_entries;
-    if(i != child) {
-        struct procfs_entry *last = NULL;
+    if(child && parent) {
+        struct procfs_entry *i = parent->e_entries;
+        if(i != child) {
+            struct procfs_entry *last = NULL;
 
-        while(i) {
-            if(i == child) {
-                last->next = i->next;
-                break;
+            while(i) {
+                if(i == child) {
+                    last->next = i->next;
+                    break;
+                }
+                last = i;
+                i = i->next;
             }
-            last = i;
+        } else {
+            parent->e_entries = child->next;
+        }
+        
+        i = child->e_entries;
+        while(i) {
+            procfs_remove_child(child, i);
             i = i->next;
         }
-    } else {
-        parent->e_entries = child->next;
+        kfree(child);
     }
-    
-    i = child->e_entries;
-    while(i) {
-        procfs_remove_child(child, i);
-        i = i->next;
-    }
-    kfree(child);
 }
 
 
@@ -207,6 +213,7 @@ static struct procfs_entry *procfs_get_entry(struct process *proc)
     } 
     return NULL;
 }
+
 static int procfs_read_ino(struct device *dev, struct inode *ino, const char *path)
 {
     struct procfs_entry *ent = procfs_get_directory(procfs_root, path);
@@ -257,6 +264,13 @@ static struct procfs_entry *procfs_get_directory(struct procfs_entry *parent, co
     return NULL;
 }
 
+static int procfs_fstat(struct device *dev, ino_t ino, struct stat *st)
+{
+    struct procfs_entry *dir = (struct procfs_entry*)ino;
+    st->st_mode = 0644;//dir->e_ino.i_mode;
+    return 0;
+}
+
 static int procfs_read_status(struct file *f, char *buf, off_t off, size_t len)
 {
     struct procfs_entry *dir = (struct procfs_entry*)f->f_ino->i_ino;
@@ -275,4 +289,10 @@ static int procfs_read_status(struct file *f, char *buf, off_t off, size_t len)
         buf[i] = tmp_buf[i + off];
     }
     return i;
+}
+
+
+static int procfs_unlink(struct device *dev, const char *path)
+{
+    return -1;
 }

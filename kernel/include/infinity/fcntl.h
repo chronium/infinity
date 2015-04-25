@@ -41,7 +41,7 @@
 #define SEEK_CUR                1       // Seek relative to current file position
 #define SEEK_END                2       // Seek relative to end of file
 
-extern int fcntl(int fd, int cmd, ...);
+int fcntl(int fd, int cmd, int arg1, int arg2);
 extern int open(const char *path, int flags);
 extern int close(int fd);
 extern size_t read(int fd, void *buf, size_t nbytes);

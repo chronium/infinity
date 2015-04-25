@@ -59,8 +59,6 @@ void ifs_create_image(void *ptr, int size)
 		block_pool[i].state = IFS_BLOCK_NONEXISTENT;
 	vol_header->root_directory = 0;
 
-
-
 	memset(ptr + vol_header->placement_new, 0xFF, 1024 * 4);
 
 	vol_header->mag0 = 0xCB;
@@ -72,7 +70,7 @@ void ifs_create_image(void *ptr, int size)
 	int table = ifs_block_alloc(1024);
 
 	struct ifs_entry dir;
-	dir.umask = 484;
+	dir.umask = 493; // drwx-r-x-r-x
 	dir.block_index = root;
 	dir.file_type = IFS_REG_FILE;
 	dir.data_index = table;
@@ -340,7 +338,7 @@ int ifs_mkdir(const char *path)
 
 	struct ifs_entry dir;
 
-	dir.umask = 484;
+	dir.umask = 493; // drwx-r-x-r-x
 	dir.file_type = IFS_DIRECTORY;
 	dir.data_index = d_block;
 	dir.file_size = 0;
@@ -358,7 +356,7 @@ int ifs_add_file(const char *path, const void *file, size_t size)
 
 	struct ifs_entry dir;
 
-	dir.umask = 484;
+	dir.umask = 493; // -rwx-r-x-r-x
 	dir.file_type = IFS_REG_FILE;
 	dir.data_index = d_block;
 	dir.file_size = size;

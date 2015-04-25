@@ -41,13 +41,15 @@ static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t of
 static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len);
 static int devfs_ioctl(struct device *dev, ino_t ino, unsigned long request, va_list argp);
 static int devfs_fstat(struct device *dev, ino_t ino, struct stat *st);
+static int devfs_unlink(struct device *dev, const char *path);
 
 struct filesystem devfs = {
         .write = devfs_write,
         .read = devfs_read,
         .readdir = devfs_read_dir,
         .readino = devfs_read_inode,
-        .fstat = devfs_fstat
+        .fstat = devfs_fstat,
+        .unlink = devfs_unlink
     };
 
 void init_devfs()
@@ -145,5 +147,11 @@ static int devfs_ioctl(struct device *dev, ino_t ino, unsigned long request, va_
         i = i->next;
     }
 
+    return -1;
+}
+
+
+static int devfs_unlink(struct device *dev, const char *path)
+{
     return -1;
 }
