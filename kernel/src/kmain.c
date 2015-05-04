@@ -27,9 +27,9 @@
 #include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/paging.h>
-#include <infinity/virtfs.h>
-#include <infinity/idt.h>
-#include <infinity/gdt.h>
+#include <infinity/fs.h>
+#include <infinity/arch/idt.h>
+#include <infinity/arch/gdt.h>
 #include <infinity/sched.h>
 #include <infinity/sync.h>
 #include <infinity/module.h>
@@ -41,6 +41,8 @@
 #include <infinity/drivers/serial.h>
 
 static void kthread_main();
+
+static void init_term(multiboot_info_t *mbootinfo);
 
 /*
  * Start of kernel execution, we are transferred here
@@ -86,4 +88,9 @@ static void kthread_main(multiboot_info_t *mbootinfo)
     while (1) {
         asm ("hlt"); // We are done. Stay here
     }
+}
+
+
+static void init_term(multiboot_info_t *mbootinfo)
+{
 }

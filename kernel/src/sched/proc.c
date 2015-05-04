@@ -27,10 +27,12 @@
 #include <infinity/sched.h>
 #include <infinity/memmanager.h>
 #include <infinity/paging.h>
-#include <infinity/portio.h>
+#include <infinity/arch/portio.h>
 #include <infinity/event.h>
 #include <infinity/elf32.h>
 
+#define STACK_TOP       0xE020000
+#define STACK_BOTTOM    0xE000000
 
 static int pid_next = 0;
 
@@ -51,7 +53,6 @@ static void add_process(struct process *new_proc);
 static void remove_process(struct process *proc);
 static void free_process();
 static struct process *sched_get_next(); 
-static struct process *get_process(pid_t id);
 
 /*
  * This will initialize the schedular by creating
@@ -70,13 +71,13 @@ void init_sched(void *callback, void *args)
     
     switch_page_directory(ndir);
     
-    for(int i = 0x4000000; i <= 0x4020000; i += 0x1000) {
+    for(int i = STACK_BOTTOM; i <= STACK_TOP; i += 0x1000) {
         frame_alloc_d(ndir, (void*)i, PAGE_USER | PAGE_RW);
     }
     
     kproc->p_pdir = ndir;
     current_proc = kproc;
-    kproc->p_esp = init_stack(ndir, (int*)0x4020000, callback, args);
+    kproc->p_esp = init_stack(ndir, (int*)STACK_TOP, callback, args);
     
     current_proc = NULL;
     add_process(kproc);
@@ -152,21 +153,21 @@ int spawnve(int mode, char *path, char **argv, char **envp)
     
     memcpy(ndir, kernel_directory, sizeof(struct page_directory));
     
-    if((mode & P_DETACH) == 0)
-        copy_fildes(current_proc, nproc);
-    
-    for(int i = 0x4000000; i <= 0x4020000; i += 0x1000) {
+    for(int i = STACK_BOTTOM; i <= STACK_TOP; i += 0x1000) {
         frame_alloc_d(ndir, (void*)i, PAGE_USER | PAGE_RW);
     }
     
     add_process(nproc);
     
+    if((mode & P_DETACH) == 0)
+        copy_fildes(current_proc, nproc);
+        
     nproc->p_pdir = ndir;
     elf = elf_open_v(nproc, path);
     
     struct elf32_ehdr *hdr = (struct elf32_ehdr*)elf;
 
-    nproc->p_esp = init_stack_ve(ndir, (int*)0x4020000, hdr->e_entry, argv, NULL);
+    nproc->p_esp = init_stack_ve(ndir, (int*)STACK_TOP, hdr->e_entry, argv, NULL);
     
     END_CRITICAL_REGION;
     
@@ -320,11 +321,13 @@ static void copy_fildes(struct process *parent, struct process *child)
     while(i) {
         struct fildes *newdes = (struct fildes*)kalloc(sizeof(struct fildes));
         memcpy(newdes, i, sizeof(struct fildes));
+        newdes->fd_owner = child;
         if(last)
             last->next = newdes;
         else
             child->p_fildes_table = newdes;
         last = newdes;
+        event_dispatch(FILDES_OPEN, newdes);
         i = i->next;
     }
     child->p_nextfd = parent->p_nextfd;
@@ -340,9 +343,11 @@ static void free_process()
     
     struct fildes *i = current_proc->p_fildes_table;
     while(i) {
-        int fd = i->fd_num;
+        struct fildes *tmp = i;
         i = i->next;
-        close(fd);
+        tmp->fd_file->f_refs--;
+        //event_dispatch(FILDES_CLOSE, newdes);
+        kfree(tmp);
     }
     
     remove_process(current_proc);
@@ -499,6 +504,25 @@ void dequeue_next_task()
     }
 }
 
+
+/*
+ * Finds a process based on its PID
+ * @param id        The PID of the process
+ */
+struct process *get_process(pid_t id)
+{
+    struct process *i = proc_list;
+
+    while (i) {
+        if (i->p_id == id) {
+            return i;
+        }
+        i = i->next;
+    }
+    return NULL;
+}
+
+
 /*
  * Allocates a thread placing it on the queue
  */
@@ -530,7 +554,7 @@ static void remove_process(struct process *proc)
     event_dispatch(PROCESS_DESTROY, proc);
     
     if(i == proc) {
-        panic("Attempted to kill idle process!");
+        panic("Attempted to kill kernel idle process!");
     } else {
         struct process *last = NULL;
         while(i) {
@@ -564,22 +588,6 @@ static struct process *sched_get_next()
         i = i->next;
     }
     return proc_list;
-}
-
-/*
- * Finds a process based on its PID
- */
-static struct process *get_process(pid_t id)
-{
-    struct process *i = proc_list;
-
-    while (i) {
-        if (i->p_id == id) {
-            return i;
-        }
-        i = i->next;
-    }
-    return NULL;
 }
 
 /*

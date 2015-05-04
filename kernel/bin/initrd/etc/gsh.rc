@@ -1,0 +1,6 @@
+#!/bin/gsh
+# gsh initialization script
+
+export PS1=""
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin"
+

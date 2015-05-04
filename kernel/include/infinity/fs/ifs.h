@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
+/* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,24 +18,33 @@
 #ifndef INFINITY_FS_IFS_H
 #define INFINITY_FS_IFS_H
 
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 
+
+#define IFS_MAG0            0xCB
+#define IFS_MAG1            0x0A
+#define IFS_MAG2            0x0D
+#define IFS_MAG3            0x0D
+
+/*
+ * Describes the state of an fixed size block used by the IFS filesystem
+ */
 typedef enum {
-    IFS_BLOCK_FREE = 1,
-    IFS_BLOCK_ALLOCATED = 2,
-    IFS_BLOCK_RESERVED = 3,
-    IFS_BLOCK_NONEXISTENT = 4
+    IFS_BLOCK_FREE          = 1,
+    IFS_BLOCK_ALLOCATED     = 2,
+    IFS_BLOCK_RESERVED      = 3,
+    IFS_BLOCK_NONEXISTENT   = 4
 }  ifs_blockstate_t;
 
-typedef enum ifs_filetype {
-    IFS_MOUNT_POINT = 0,
-    IFS_DIRECTORY = 1,
-    IFS_LINK = 2,
-    IFS_SOCKET = 3,
-    IFS_PIPE = 4,
-    IFS_BLOCK_DEVICE = 6,
-    IFS_CHAR_DEVICE = 7,
-	IFS_REG_FILE = 8,
+typedef enum {
+    IFS_MOUNT_POINT         = 0,
+    IFS_DIRECTORY           = 1,
+    IFS_LINK                = 2,
+    IFS_SOCKET              = 3,
+    IFS_PIPE                = 4,
+    IFS_BLOCK_DEVICE        = 6,
+    IFS_CHAR_DEVICE         = 7,
+    IFS_REG_FILE            = 8,
 } ifs_filetype_t;
 
 struct ifs_volume_hdr {
@@ -57,13 +66,13 @@ struct ifs_volume_hdr {
 
 struct ifs_entry {
     char            file_name[128];
-    int             created_time;
-    int             modified_time;
+    uint32_t        created_time;
+    uint32_t        modified_time;
     uint32_t        block_index;
     uint32_t        data_index;
     uint32_t        file_size;
     ifs_filetype_t  file_type;
-    uint32_t        umask;
+    uint32_t        mode;
     uint32_t        uid;
     uint32_t        gid;
 };
@@ -74,6 +83,9 @@ struct ifs_block {
     uint32_t    next;
     uint32_t    state;
 };
+
+#define IFS_DIR_SIZE        1024
+#define IFS_MAX_ENTS        256
 
 extern void mount_initrd(void *rd);
 extern void register_ifs();

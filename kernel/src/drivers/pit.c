@@ -24,8 +24,8 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <infinity/common.h>
-#include <infinity/interrupt.h>
-#include <infinity/portio.h>
+#include <infinity/arch/pic.h>
+#include <infinity/arch/portio.h>
 #include <infinity/kernel.h>
 
 

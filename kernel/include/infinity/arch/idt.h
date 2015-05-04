@@ -16,8 +16,8 @@
  */
 
 
-#ifndef INFINITY_IDT_H
-#define INFINITY_IDT_H
+#ifndef INFINITY_ARCH_IDT_H
+#define INFINITY_ARCH_IDT_H
 
 #include <stdint.h>
 

@@ -24,7 +24,7 @@
 #include <infinity/kernel.h>
 #include <infinity/dirent.h>
 #include <infinity/heap.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/sched.h>
 #include <infinity/fifobuf.h>
 #include <infinity/sync.h>
@@ -54,8 +54,8 @@ int pipe(int *pipedes)
     struct file *files[2];
     int res = fpipe(files);
     if(res == 0) {
-        pipedes[0] = create_fildes(files[0]);
-        pipedes[1] = create_fildes(files[1]);
+        pipedes[0] = create_fildes("anon_pipe", files[0]);
+        pipedes[1] = create_fildes("anon_pipe", files[1]);
         return 0;
     }
     return -1;
@@ -90,7 +90,7 @@ int fpipe(struct file *f[])
  */
 static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
 {
-    struct pipe_buf *pipe = fd->f_tag;
+    struct fifo_buffer *pipe = fd->f_tag;
     fifo_write(pipe, buf, len);
     return len;
 }
@@ -101,7 +101,7 @@ static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
  */
 static int pipe_read(struct file *fd, char *buf, off_t off, size_t len)
 {
-    struct pipe_buf *pipe = fd->f_tag;
+    struct fifo_buffer *pipe = fd->f_tag;
     fifo_read(pipe, buf, len);
     return len;
 }

@@ -26,7 +26,7 @@
 #include <infinity/kernel.h>
 #include <infinity/device.h>
 #include <infinity/paging.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/fcntl.h>
 #include <infinity/drivers/serial.h>
 #include <infinity/drivers/framebuffer.h>

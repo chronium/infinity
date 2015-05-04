@@ -1,6 +1,6 @@
 #include <infinity/kernel.h>
-#include <infinity/interrupt.h>
-#include <infinity/portio.h>
+#include <infinity/arch/pic.h>
+#include <infinity/arch/portio.h>
 #include <infinity/device.h>
 #include <infinity/tty.h>
 

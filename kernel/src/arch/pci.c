@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 - GruntTheDivine (Sloan Crandell)
+/* Copyright (C) 2015 - GruntTheDivine (Sloan Crandell)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,28 +15,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
-#ifndef INFINITY_GDT_H
-#define INFINITY_GDT_H
-
 #include <stdint.h>
+#include <infinity/arch/portio.h>
+#include <infinity/arch/pci.h>
 
-struct gdt_entry {
-    uint16_t    limit_low;
-    uint16_t    base_low;
-    uint8_t     base_middle;
-    uint8_t     access;
-    uint8_t     granularity;
-    uint8_t     base_high;
-} __attribute__((packed));
-
-struct gdt_ptr {
-    uint16_t    limit;
-    uint32_t    base;
-}  __attribute__((packed));
-
-
-extern void init_gdt();
-extern void gdt_flush(uint32_t ptr);
-extern void set_kernel_stack(uint32_t stack);
-#endif
+uint16_t pci_read_word(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
+{
+    uint32_t address;
+    uint32_t lbus  = (uint32_t)bus;
+    uint32_t lslot = (uint32_t)slot;
+    uint32_t lfunc = (uint32_t)func;
+    uint16_t tmp = 0;
+ 
+    address = (uint32_t)((lbus << 16) | (lslot << 11) | (lfunc << 8) | (offset & 0xfc) | ((uint32_t)0x80000000));
+ 
+    outw(0xCF8, address);
+    
+    return (uint16_t)((inw(0xCFC) >> ((offset & 2) * 8)) & 0xffff);
+}

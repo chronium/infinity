@@ -20,9 +20,9 @@
  * Low level code to load the kernel idt
  */
 #include <stdint.h>
-#include <infinity/idt.h>
-#include <infinity/portio.h>
-#include <infinity/interrupt.h>
+#include <infinity/arch/idt.h>
+#include <infinity/arch/portio.h>
+#include <infinity/arch/pic.h>
 #include <infinity/common.h>
 
 

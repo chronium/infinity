@@ -17,7 +17,7 @@
 
 
 #include <stdint.h>
-#include <infinity/gdt.h>
+#include <infinity/arch/gdt.h>
 #include <infinity/tss.h>
 
 struct gdt_entry gdt[6];

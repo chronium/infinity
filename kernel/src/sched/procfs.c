@@ -27,11 +27,12 @@
 #include <infinity/common.h>
 #include <infinity/sched.h>
 #include <infinity/dirent.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/event.h>
 
 struct procfs_entry {
     char                    e_name[256];
+    char                    e_sym[256];
     uint32_t                e_type;
     struct procfs_entry *   e_entries;
     struct process *        e_proc;
@@ -55,13 +56,15 @@ static int procfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *
 static int procfs_read_status(struct file *f, char *buf, off_t off, size_t len);
 static int procfs_fstat(struct device *dev, ino_t ino, struct stat *st);
 static int procfs_unlink(struct device *dev, const char *path);
+static int procfs_readlink(struct device *dev, const char *path, char *buf, int len);
 static struct procfs_entry *procfs_get_directory(struct procfs_entry *parent, const char *path);
 
 struct filesystem procfs = {
     .readino = procfs_read_ino,
     .readdir = procfs_read_dir,
     .fstat = procfs_fstat,
-    .unlink = procfs_unlink
+    .unlink = procfs_unlink,
+    .readlink = procfs_readlink
 };
 
 
@@ -141,8 +144,11 @@ static void procfs_open_fd(uint32_t i, void *args)
     struct procfs_entry *fd_root = ent->e_entries;
     struct procfs_entry *e = (struct procfs_entry*)kalloc(sizeof(struct procfs_entry));
     sprintf(e->e_name, "%d", fd->fd_num);
+    
     e->e_type = DT_LNK;
-    /* TODO: We need to actually link it... */
+    e->e_ino.i_islnk = 1;
+    strcpy(e->e_sym, fd->fd_name);
+    
     procfs_add_child(fd_root, e);
 }
 
@@ -291,6 +297,15 @@ static int procfs_read_status(struct file *f, char *buf, off_t off, size_t len)
     return i;
 }
 
+static int procfs_readlink(struct device *dev, const char *path, char *buf, int len)
+{
+    struct procfs_entry *ent = procfs_get_directory(procfs_root, path);
+    if(ent != NULL && ent->e_ino.i_islnk) {
+        memcpy(buf, ent->e_sym, len % 256);
+        return 0;
+    }
+    return -1;
+}
 
 static int procfs_unlink(struct device *dev, const char *path)
 {

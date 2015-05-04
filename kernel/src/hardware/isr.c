@@ -24,8 +24,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <infinity/kernel.h>
-#include <infinity/portio.h>
-#include <infinity/interrupt.h>
+#include <infinity/arch/portio.h>
+#include <infinity/arch/pic.h>
 
 inthandler_t isr_handlers[256] = { 0 };
 

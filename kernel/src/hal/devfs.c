@@ -29,7 +29,7 @@
 #include <infinity/types.h>
 #include <infinity/heap.h>
 #include <infinity/dirent.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 
 
 extern struct device *device_list;
@@ -39,7 +39,7 @@ static int devfs_open(struct device *dev, struct file *f, const char *path, int 
 static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent);
 static int devfs_write(struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
 static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_t len);
-static int devfs_ioctl(struct device *dev, ino_t ino, unsigned long request, va_list argp);
+static int devfs_ioctl(struct device *dev, ino_t ino, int arg1, int arg2, int arg3);
 static int devfs_fstat(struct device *dev, ino_t ino, struct stat *st);
 static int devfs_unlink(struct device *dev, const char *path);
 
@@ -49,7 +49,8 @@ struct filesystem devfs = {
         .readdir = devfs_read_dir,
         .readino = devfs_read_inode,
         .fstat = devfs_fstat,
-        .unlink = devfs_unlink
+        .unlink = devfs_unlink,
+        .ioctl = devfs_ioctl
     };
 
 void init_devfs()
@@ -57,7 +58,7 @@ void init_devfs()
     strcpy(devfs.fs_name, "devfs");
 
     int res = virtfs_mount(NULL, &devfs, "/dev");
-    printk(KERN_DEBUG, "Mounting devfs to /dev\n");
+    printk(KERN_DEBUG, "devfs: creating device filesystem");
     if (res)
         printk(KERN_ERR, "devfs: What is this! Someone has already mounted something onto /dev? THIS IS AN OUTRAGE. \n");
 }
@@ -90,16 +91,18 @@ static int devfs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *d
 static int devfs_read_inode(struct device *dev, struct inode *ino, const char *path)
 {
     struct device *i = device_list;
+    ino->i_islnk = 0;
+    ino->i_isfifo = 0;
     if(path[0] == 0) {
         ino->i_ino = 0;
-        ino->i_dev = 0xCB00;
+        ino->i_dev = 0xCBFA;
         return 0;
     }
     
     while (i) {
         if (!strcmp(path, i->dev_name)) {
             ino->i_ino = i->dev_id;
-            ino->i_dev = 0xCB00;
+            ino->i_dev = 0xCBFA;
             return 0;
         }
         i = i->next;
@@ -137,13 +140,13 @@ static int devfs_read(struct device *dev, ino_t ino, char *buf, off_t off, size_
     return -1;
 }
 
-static int devfs_ioctl(struct device *dev, ino_t ino, unsigned long request, va_list argp)
+static int devfs_ioctl(struct device *dev, ino_t ino, int arg1, int arg2, int arg3)
 {
     struct device *i = device_list;
 
     while (i) {
         if (i->dev_id == ino)
-            return device_ioctl(i, request, argp);
+            return device_ioctl(i, arg1, arg2, arg3);
         i = i->next;
     }
 

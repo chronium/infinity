@@ -20,7 +20,7 @@
 #define MEMORY_PAGE_FAULT_H
 
 #include <stdint.h>
-#include <infinity/interrupt.h>
+#include <infinity/arch/pic.h>
 
 void page_fault_handler(struct regs *regs);
 

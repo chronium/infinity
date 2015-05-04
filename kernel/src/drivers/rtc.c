@@ -21,7 +21,7 @@
 #include <infinity/heap.h>
 #include <infinity/device.h>
 #include <infinity/types.h>
-#include <infinity/portio.h>
+#include <infinity/arch/portio.h>
 #include <infinity/time.h>
 
 #define CONVERT_TO_BINARY(x)     (((x & 0xF0) >> 1) + ((x & 0xF0) >> 3) + (x & 0xf))

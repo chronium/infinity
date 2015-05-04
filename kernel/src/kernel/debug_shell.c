@@ -3,7 +3,7 @@
 #include <infinity/kernel.h>
 #include <infinity/heap.h>
 #include <infinity/common.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/dirent.h>
 #include <infinity/sched.h>
 #include <infinity/fcntl.h>

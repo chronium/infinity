@@ -16,7 +16,7 @@
  */
 
 #include <stdint.h>
-#include <infinity/interrupt.h>
+#include <infinity/arch/pic.h>
 #include <infinity/memmanager.h>
 #include <infinity/sched.h>
 

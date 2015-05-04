@@ -25,7 +25,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <infinity/common.h>
-#include <infinity/interrupt.h>
+#include <infinity/arch/pic.h>
 #include <infinity/kernel.h>
 
 static void display_registers(struct regs *regs);

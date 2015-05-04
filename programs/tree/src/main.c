@@ -6,15 +6,13 @@
 #include <sys/infinity.h>
 
 struct tree_options {
-    char    list_all;
-    char    long_list;
+    char    dir_only;
     char    directory[128];
 };
 
 static int parse_options(char **argv, int argc, struct tree_options *options);
 static int set_options(char *str, struct tree_options *options);
 static void tree_r(int ident, const char *dir, struct tree_options *options);
-
 
 int main(char **argv, char **environ)
 {
@@ -48,12 +46,10 @@ static int set_options(char *str, struct tree_options *options)
 {
     int len = strlen(str);
     for(int i = 1; i < len; i++) {
-        if(str[i] == 'a') {
-            options->list_all = 1;
-        } else if (str[i] == 'l') {
-            options->long_list = 1;
+        if(str[i] == 'd') {
+            options->dir_only = 1;
         } else {
-            printf("ls: invalid option -- '%c'\n", str[i]);
+            printf("tree: invalid option -- '%c'\n", str[i]);
             return -1;
         }
     }
@@ -64,8 +60,8 @@ static void tree_r(int ident, const char *dir, struct tree_options *options)
 {
     char idents[32];
     char tmp[128];
-    memset(idents, '\t', ident);
-    idents[ident] = 0;
+    memset(idents, ' ', ident * 4);
+    idents[ident * 4] = 0;
     
     int fd = sys_open(dir, 0xFF);
     if(fd != -1) {
@@ -73,7 +69,9 @@ static void tree_r(int ident, const char *dir, struct tree_options *options)
         int d = 0;
         
         while(sys_readdir(fd, d++, &dent) != -1) {
-            printf("%s|--%s\n", idents, dent.d_name);
+            if(options->dir_only && dent.d_type != 0x02)
+                continue;
+            printf("%s|-- %s\n", idents, dent.d_name);
             if(dir[1] == 0) 
                 sprintf(tmp, "/%s", dent.d_name);
             else 

@@ -75,7 +75,7 @@ size_t device_write(struct device *dev, const void *buff, size_t size, uint32_t 
 /*
  * IO control request
  */
-size_t device_ioctl(struct device *dev, unsigned long request, va_list argp)
+size_t device_ioctl(struct device *dev, int arg1, int arg2, int arg3)
 {
-    return dev->ioctl(dev, request, argp);
+    return dev->ioctl(dev, arg1, arg2, arg3);
 }

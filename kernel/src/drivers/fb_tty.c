@@ -79,7 +79,7 @@ static void fb_scroll(struct fb_tty_info *info);
 static void fb_clear(struct fb_tty_info *info);
 static size_t fb_tty_write(void *tag, const char *msg, size_t len, int addr);
 static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr);
-static int fb_tty_ioctl(void *tag, unsigned long request, va_list argp);
+static int fb_tty_ioctl(void *tag, int request, int arg1, int arg2);
 static void fb_tty_recieve(struct tty *t, char c);
 static char fb_tty_getc(struct fb_tty_info *info);
 static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, int bg);
@@ -369,7 +369,7 @@ static size_t fb_tty_read(void *tag, char *buf, size_t len, int addr)
     return i;
 }
 
-static int fb_tty_ioctl(void *tag, unsigned long request, va_list argp)
+static int fb_tty_ioctl(void *tag, int request, int arg1, int arg2)
 {
     struct fb_tty_info *info = (struct fb_tty_info*)tag;
     struct tty_size rsize;
@@ -380,7 +380,7 @@ static int fb_tty_ioctl(void *tag, unsigned long request, va_list argp)
             rsize.t_height = info->height;
             rsize.t_xpixel = info->width * FONT_WIDTH;
             rsize.t_ypixel = info->height * FONT_HEIGHT;
-            memcpy(va_arg(argp, struct tty_size*), &rsize, sizeof(struct tty_size));
+            memcpy((void*)arg1, &rsize, sizeof(struct tty_size));
             break;
         default:
             return -1;

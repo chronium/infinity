@@ -15,8 +15,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef INFINITY_PORTIO_H
-#define INFINITY_PORTIO_H
+#ifndef INFINITY_ARCH_PORTIO_H
+#define INFINITY_ARCH_PORTIO_H
 
 #include <stdint.h>
 

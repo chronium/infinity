@@ -20,8 +20,9 @@
 
 #include <stddef.h>
 #include <infinity/types.h>
-#include <infinity/interrupt.h>
-#include <infinity/virtfs.h>
+#include <infinity/arch/pic.h>
+#include <infinity/fs.h>
+#include <infinity/signal.h>
 #include <infinity/paging.h>
 
 #define BEGIN_CRITICAL_REGION   asm ("cli");
@@ -73,5 +74,5 @@ int setgid(gid_t gid);
 char *getwd(char *buf);
 int setwd(char *buf);
 pid_t fork();
-
+struct process *get_process(pid_t id);
 #endif

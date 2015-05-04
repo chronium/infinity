@@ -5,7 +5,10 @@
 
 
 static int scanner_next(struct tokenizer *context);
-static void scanner_scan_ident(struct tokenizer *context) ;
+static void scanner_scan_redirect(struct tokenizer *context);
+static void scanner_scan_redir(struct tokenizer *context);
+static void scanner_scan_ident(struct tokenizer *context);
+static void scanner_add_token(struct tokenizer *context, struct token *tok);
 
 void init_tokenizer(struct tokenizer *scanner, const char *source)
 {
@@ -20,7 +23,8 @@ void uninit_tokenizer(struct tokenizer *scanner)
     while(tok) {
         struct token *t = tok;
         tok = tok->next;
-        free(t->value);
+        if(t->value != NULL)
+            free(t->value);
         free(t);
     }
 }
@@ -32,7 +36,15 @@ int tokenize(struct tokenizer *context)
         while(context->source[context->position] == ' ')
             context->position++;
         if(context->source[context->position]) {
-            scanner_scan_ident(context);
+            switch(context->source[context->position]) {
+                case '>':
+                    scanner_scan_redir(context);
+                    break;
+                default:
+                    scanner_scan_ident(context);
+                    break;
+                
+            }
         }
     }
     return context->tokens;
@@ -44,6 +56,22 @@ static int scanner_next(struct tokenizer *context)
         return (int)context->source[context->position++];
     else
         return -1;
+}
+
+static void scanner_scan_redir(struct tokenizer *context)
+{
+    struct token *tok = (struct token*)malloc(sizeof(struct token));
+    memset(tok, 0, sizeof(struct token));
+    scanner_next(context);
+    if(context->source[context->position] == '>') {
+        scanner_next(context);
+        tok->type = TOK_RDIR;
+    } else {
+        tok->type = TOK_RDIR_A;
+        
+    }
+    scanner_add_token(context, tok);
+    
 }
 
 static void scanner_scan_ident(struct tokenizer *context) 
@@ -59,6 +87,12 @@ static void scanner_scan_ident(struct tokenizer *context)
     struct token *tok = (struct token*)malloc(sizeof(struct token));
     memset(tok, 0, sizeof(struct token));
     tok->value = buf;
+    tok->type = TOK_STRING;
+    scanner_add_token(context, tok);
+}
+
+static void scanner_add_token(struct tokenizer *context, struct token *tok)
+{
     if(context->token_list) {
         struct token *n = context->token_list;
         while(n->next)
@@ -67,5 +101,6 @@ static void scanner_scan_ident(struct tokenizer *context)
     } else {
         context->token_list = tok;
     }
+    tok->next = NULL;
     context->tokens++;
 }

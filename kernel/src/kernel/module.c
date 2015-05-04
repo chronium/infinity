@@ -25,7 +25,7 @@
 #include <infinity/heap.h>
 #include <infinity/kernel.h>
 #include <infinity/elf32.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/fcntl.h>
 #include <infinity/module.h>
 

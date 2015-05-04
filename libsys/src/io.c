@@ -61,6 +61,13 @@ int sys_mkdir(const char *dir)
     return ret;
 }
 
+int sys_mkfifo(const char *dir, mode_t mode)
+{
+    int ret;
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKFIFO), "b"(dir), "c"(mode));
+    return ret;
+}
+
 int sys_unlink(const char *dir)
 {
     int ret;
@@ -72,5 +79,34 @@ int sys_rmdir(const char *dir)
 {
     int ret;
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_RMDIR), "b"(dir));
+    return ret;
+}
+
+
+int sys_readlink(const char *path, char *buf, int len)
+{
+    int ret;
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_READLINK), "b"(path), "c" (buf), "d" (len));
+    return ret;
+}
+
+int sys_symlink(const char *from, const char *to)
+{
+    int ret;
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SYMLINK), "b"(from), "c" (to));
+    return ret;
+}
+
+int sys_lstat(const char *path, struct stat *st)
+{
+    int ret;
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_LSTAT), "b"(path), "c" (st));
+    return ret;
+}
+
+int sys_chmod(const char *path, mode_t mode)
+{
+    int ret;
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHMOD), "b"(path), "c" (mode));
     return ret;
 }

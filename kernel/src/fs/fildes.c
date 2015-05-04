@@ -24,17 +24,19 @@
 #include <stdarg.h>
 #include <infinity/heap.h>
 #include <infinity/kernel.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/syscalls.h>
 #include <infinity/sched.h>
 #include <infinity/sync.h>
 #include <infinity/event.h>
 #include <infinity/fcntl.h>
+#include <infinity/errno.h>
 #include <infinity/fildes.h>
 
 
 extern struct process *current_proc;
 
+static struct fildes *get_free_fildes();
 static struct fildes *get_fildes(int num);
 static void add_fildes(struct fildes *fd);
 static void remove_fildes(struct fildes *fd);
@@ -50,16 +52,16 @@ int fcntl(int fd, int cmd, int arg1, int arg2)
                 if(old) {
                     close(arg1);
                 }
-                struct fildes *fdes = (struct fildes*)kalloc(sizeof(struct fildes));
-                fdes->fd_num = arg1;
+                struct fildes *fdes = old;
                 fdes->next = NULL;
+                fdes->fd_flags = 0;
                 fdes->fd_file = f->fd_file;
-                add_fildes(fdes);
+                strcpy(fdes->fd_name, f->fd_name);
                 f->fd_file->f_refs++;
                 return 0;
         }
     }
-    return -1;
+    return ENOENT;
 }
 
 /*
@@ -71,7 +73,7 @@ int open(const char *path, int mode)
 {
     struct file *f = virtfs_open(path);
     if(f) {
-        return create_fildes(f);
+        return create_fildes(path, f);
     } else {
         return -1;
     }
@@ -87,7 +89,8 @@ int close(int fd)
     struct fildes *f = get_fildes(fd);
     if(f) {
         f->fd_file->f_refs--;
-        remove_fildes(f);
+        event_dispatch(FILDES_CLOSE, f);
+        f->fd_flags = F_CLOSED;
         if(f->fd_file->f_refs <= 0) {
             //fclose(f);
         }
@@ -161,7 +164,7 @@ int fstat(int fd, struct stat *buf)
     if(f) {
         return ino->fstat(ino, buf);
     } else {
-        return -1;
+        return ENOENT;
     }
 }
 
@@ -176,15 +179,34 @@ int readdir(int fd, int i, struct dirent *buf)
     }
 }
 
-int create_fildes(struct file *f)
+int create_fildes(const char *path, struct file *f)
 {
-    struct fildes *fd = (struct fildes*)kalloc(sizeof(struct fildes));
-    fd->fd_num = current_proc->p_nextfd++;
-    fd->next = NULL;
+    struct fildes *fd = get_free_fildes();
+    if(fd == NULL) {
+        fd = (struct fildes*)kalloc(sizeof(struct fildes));
+        fd->fd_num = current_proc->p_nextfd++;
+        add_fildes(fd);
+    }
     fd->fd_file = f;
-    add_fildes(fd);
+    fd->fd_pos = 0;
+    fd->fd_flags = 0;
+    fd->fd_owner = current_proc;
+    strcpy(fd->fd_name, path);
     f->f_refs++;
+    event_dispatch(FILDES_OPEN, fd);
     return fd->fd_num;
+}
+
+static struct fildes *get_free_fildes()
+{
+    struct fildes *i = current_proc->p_fildes_table;
+    while(i) {
+        if(i->fd_flags & F_CLOSED) {
+            return i;
+        }
+        i = i->next;
+    }
+    return NULL;
 }
 
 /*
@@ -194,7 +216,7 @@ static struct fildes *get_fildes(int num)
 {
     struct fildes *i = current_proc->p_fildes_table;
     while(i) {
-        if(i->fd_num == num) {
+        if(i->fd_num == num && i->fd_flags != F_CLOSED) {
             return i;
         }
         i = i->next;
@@ -218,12 +240,10 @@ static void add_fildes(struct fildes *fd)
         }
         i->next = fd;
     }
-    event_dispatch(FILDES_OPEN, fd);
 }
 
 static void remove_fildes(struct fildes *fd)
 {
-    event_dispatch(FILDES_CLOSE, fd);
     struct fildes *i = current_proc->p_fildes_table;
     if(i == fd) {
         current_proc->p_fildes_table = i->next;

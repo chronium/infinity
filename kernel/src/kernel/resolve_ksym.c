@@ -24,7 +24,7 @@
 #include <infinity/common.h>
 #include <infinity/kernel.h>
 #include <infinity/fcntl.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/types.h>
 
 struct kernel_symbol {

@@ -1,5 +1,5 @@
 #include <infinity/kernel.h>
-#include <infinity/interrupt.h>
+#include <infinity/arch/pic.h>
 #include <infinity/fildes.h>
 #include <infinity/syscalls.h>
 #include <infinity/fcntl.h>
@@ -24,12 +24,17 @@ int syscall_table[] = {
   setwd, // 14
   pipe, // 15
   fcntl, // 16 (0x10)
-  NULL, // 17 (0x11)
+  mkfifo, // 17 (0x11)
   NULL, // 0x12
   mkdir, // 0x13
   NULL, // 0x14 
   unlink,
-  rmdir
+  rmdir,
+  symlink,
+  readlink,
+  lstat,
+  chmod,
+  NULL, // chown
   
 };
 

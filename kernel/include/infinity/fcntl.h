@@ -18,7 +18,7 @@
 #ifndef INFINITY_FCNTL_H
 #define INFINITY_FCNTL_H
 
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/device.h>
 #include <infinity/types.h>
 

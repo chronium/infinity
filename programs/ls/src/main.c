@@ -82,22 +82,21 @@ static void ls_dir(struct ls_options *options)
 static void ls_ent(struct ls_options *options, struct infinity_dirent *dent)
 {
     char full_path[128];
-    sprintf("%s/%s", options->directory, dent->d_name);
+    sprintf(full_path, "%s/%s", options->directory, dent->d_name);
+    struct stat st;
     if(options->long_list) {
-        int fd = open(full_path, O_RDONLY);
-        if(fd) {
-            struct stat st;
-            fstat(fd, &st);
+        if(sys_lstat(full_path, &st) == 0) {
             print_mode(st.st_mode);
             struct passwd *pw = getpwuid(st.st_uid);
             printf("\t%s", pw->pw_name);
             printf("\t%d\t", st.st_uid);
-            printf("\t%s\n", dent->d_name);
-            printf("%d\n", sizeof(nlink_t));
-            printf("%d\n", sizeof(ino_t));
-            printf("%d\n", sizeof(dev_t));
-            printf("%d\n", sizeof(mode_t));
-            close(fd);
+            printf("\t%s", dent->d_name);
+            if(dent->d_type == 0x07) {
+                char tmp[128];
+                sys_readlink(full_path, tmp, 128);
+                printf(" -> %s", tmp);
+            }
+            printf("\n");
         }
     } else {
         printf("%s\n", dent->d_name);

@@ -2,29 +2,35 @@
 #define INFINITY_SYS_H
 
 #include <stdint.h>
+#include <sys/stat.h>
 
-#define SYS_EXIT    0x01
-#define SYS_SBRK    0x02
-#define SYS_READ    0x03
-#define SYS_WRITE   0x04
-#define SYS_OPEN    0x05
-#define SYS_CLOSE   0x06
-#define SYS_LSEEK   0x07
-#define SYS_FSTAT   0x08
-#define SYS_READDIR 0x09
-#define SYS_SPAWNVE 0x0A
-#define SYS_GETUID  0x0B
-#define SYS_SETUID  0x0C
-#define SYS_GETWD   0x0D
-#define SYS_SETWD   0x0E
-#define SYS_PIPE    0x0F
-#define SYS_FCNTL   0x10
-#define SYS_MKFIFO  0x11
-#define SYS_MKNODE  0x12
-#define SYS_MKDIR   0x13
-#define SYS_CREAT   0x14
-#define SYS_UNLINK  0x15
-#define SYS_RMDIR   0x16
+#define SYS_EXIT        0x01
+#define SYS_SBRK        0x02
+#define SYS_READ        0x03
+#define SYS_WRITE       0x04
+#define SYS_OPEN        0x05
+#define SYS_CLOSE       0x06
+#define SYS_LSEEK       0x07
+#define SYS_FSTAT       0x08
+#define SYS_READDIR     0x09
+#define SYS_SPAWNVE     0x0A
+#define SYS_GETUID      0x0B
+#define SYS_SETUID      0x0C
+#define SYS_GETWD       0x0D
+#define SYS_SETWD       0x0E
+#define SYS_PIPE        0x0F
+#define SYS_FCNTL       0x10
+#define SYS_MKFIFO      0x11
+#define SYS_MKNODE      0x12
+#define SYS_MKDIR       0x13
+#define SYS_CREAT       0x14
+#define SYS_UNLINK      0x15
+#define SYS_RMDIR       0x16
+#define SYS_SYMLINK     0x17
+#define SYS_READLINK    0x18
+#define SYS_LSTAT       0x19
+#define SYS_CHMOD       0x1A
+#define SYS_CHOWN       0x1B
 
 #define P_WAIT      0        
 #define P_NOWAIT    1
@@ -53,7 +59,12 @@ int sys_setuid(int uid);
 int sys_pipe(int pipedes[2]);
 int sys_fcntl(int fd, int arg1, int arg2, int arg3);
 int sys_mkdir(const char *dir);
+int sys_mkfifo(const char *dir, mode_t mode);
 int sys_rmdir(const char *dir);
 int sys_unlink(const char *dir);
+int sys_readlink(const char *path, char *buf, int len);
+int sys_symlink(const char *from, const char *to);
+int sys_lstat(const char *path, struct stat *st);
+int sys_chmod(const char *path, mode_t mode);
 
 #endif

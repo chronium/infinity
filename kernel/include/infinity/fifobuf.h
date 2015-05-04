@@ -28,7 +28,7 @@ static inline void fifo_writeb(struct fifo_buffer *buf, char c)
 
 static inline char fifo_readb(struct fifo_buffer *buf)
 {
-    while(buf->f_avail == 0)asm("hlt");
+    while(buf->f_avail == 0) asm("hlt");
     char ret = buf->f_buf[buf->f_first++];
     buf->f_avail--;
     return ret;

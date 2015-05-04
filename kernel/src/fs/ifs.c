@@ -23,10 +23,11 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <infinity/common.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/kernel.h>
 #include <infinity/stat.h>
 #include <infinity/sched.h>
+#include <infinity/errno.h>
 #include <infinity/fs/ifs.h>
 
 struct filesystem ifs_filesystem;
@@ -44,9 +45,14 @@ static size_t ifs_write_file(struct device *dev, ino_t ino, char *buff, off_t ad
 static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *dent);
 static int ifs_read_ino(struct device *dev, struct inode *ino, const char *path);
 static int ifs_mkdir(struct device *dev, const char *dir, mode_t mode);
+static int ifs_mkfifo(struct device *dev, const char *path, mode_t mode);
 static int ifs_creat(struct device *dev, const char *dir, mode_t mode);
 static int ifs_unlink(struct device *dev, const char *path);
+static int ifs_rmdir(struct device *dev, const char *path);
+static int ifs_readlink(struct device *dev, const char *path, char *buf, int len);
+static int ifs_symlink(struct device *dev, const char *from, const char *to);
 static int ifs_free_blockgroup(struct device *dev, struct ifs_entry *entry);
+static int ifs_chmod(struct device *dev, const char *path, mode_t newmode);
 
 
 void register_ifs()
@@ -59,6 +65,11 @@ void register_ifs()
     ifs_filesystem.mkdir = ifs_mkdir;
     ifs_filesystem.readino = ifs_read_ino;
     ifs_filesystem.unlink = ifs_unlink;
+    ifs_filesystem.rmdir = ifs_rmdir;
+    ifs_filesystem.readlink = ifs_readlink;
+    ifs_filesystem.symlink = ifs_symlink;
+    ifs_filesystem.chmod = ifs_chmod;
+    ifs_filesystem.mkfifo = ifs_mkfifo;
     register_fs(&ifs_filesystem);
 }
 
@@ -67,20 +78,12 @@ static int ifs_mount(struct device *dev)
     struct ifs_volume_hdr hdr;
 
 
-    device_read(dev, &hdr, 0, sizeof(struct ifs_volume_hdr));
+    device_read(dev, &hdr, sizeof(struct ifs_volume_hdr), 0);
 
-    /*
-     * Yes Courtney, even though you completely fucked me over
-     * in just about every respect, I immortalized you in the IFS
-     * magic number. Not that you will ever see this. Maybe because
-     * I still love you, maybe because, well I have no fucking clue....
-     *
-     * Magic number: 0xCB0A0D0D (Big endian)
-     */
     if (hdr.mag0 != 0xCB || hdr.mag1 != 0x0A || hdr.mag2 != 0x0D || hdr.mag3 != 0x0D)
         return -1;
 
-    return 1;
+    return 0;
 }
 
 /*
@@ -113,15 +116,15 @@ static inline int ifs_remove_entry(struct device *dev, const char *path, struct 
 {
     int parent = ifs_get_parent(dev, path);
     struct ifs_entry p_ent;
-    device_read(dev, &p_ent, ifs_get_address(dev, parent), sizeof(struct ifs_entry));
+    device_read(dev, &p_ent, sizeof(struct ifs_entry), ifs_get_address(dev, parent));
     int32_t files[256];
-	device_read(dev, files, ifs_get_address(dev, p_ent.data_index), 1024);
+	device_read(dev, files, 1024, ifs_get_address(dev, p_ent.data_index));
     int i = 0;
     while(files[i] != entry->block_index && files[i] != -1) i++;
     for(int j = i; j < 255 && files[j] != -1; j++) {
         files[j] = files[j + 1];
     }
-	device_write(dev, files, ifs_get_address(dev, p_ent.data_index), 1024);
+	device_write(dev, files, 1024, ifs_get_address(dev, p_ent.data_index));
    
 	return 0;
 }
@@ -132,14 +135,14 @@ static inline int ifs_insert_entry(struct device *dev, const char *path, struct 
 	entry->block_index = e_block;
     int parent = ifs_get_parent(dev, path);
     struct ifs_entry p_ent;
-    device_read(dev, &p_ent, ifs_get_address(dev, parent), sizeof(struct ifs_entry));
+    device_read(dev, &p_ent, sizeof(struct ifs_entry), ifs_get_address(dev, parent));
 	int32_t *files = (int32_t *)kalloc(1024);
-	device_read(dev, files, ifs_get_address(dev, p_ent.data_index), 1024);
+	device_read(dev, files, 1024, ifs_get_address(dev, p_ent.data_index));
 	int i = 0;
 	while (files[i] != -1) i++;
 	files[i] = e_block;
-	device_write(dev, files, ifs_get_address(dev, p_ent.data_index), 1024);
-	device_write(dev, entry, ifs_get_address(dev, e_block), sizeof(struct ifs_entry));
+	device_write(dev, files, 1024, ifs_get_address(dev, p_ent.data_index));
+	device_write(dev, entry, sizeof(struct ifs_entry), ifs_get_address(dev, e_block));
 	kfree(files);
 	return e_block;
 }
@@ -153,21 +156,21 @@ static int ifs_block_alloc(struct device *dev, int size)
     struct ifs_block blk;
     struct ifs_volume_hdr hdr;
 
-    device_read(dev, &hdr, 0, sizeof(struct ifs_volume_hdr));
+    device_read(dev, &hdr, sizeof(struct ifs_volume_hdr), 0);
 
     for (int i = 0; i < hdr.block_pool_size; i += sizeof(struct ifs_block)) {
-        device_read(dev, &blk, sizeof(struct ifs_volume_hdr) + i, sizeof(struct ifs_block));
+        device_read(dev, &blk, sizeof(struct ifs_block), sizeof(struct ifs_volume_hdr) + i);
         if (blk.state == IFS_BLOCK_NONEXISTENT) {
             blk.size = size;
             blk.state = IFS_BLOCK_ALLOCATED;
             blk.data = hdr.placement_new;
             hdr.placement_new += size;
-            device_write(dev, &hdr, 0, sizeof(struct ifs_volume_hdr));
-            device_write(dev, &blk, sizeof(struct ifs_volume_hdr) + i, sizeof(struct ifs_block));
+            device_write(dev, &hdr, sizeof(struct ifs_volume_hdr), 0);
+            device_write(dev, &blk, sizeof(struct ifs_block), sizeof(struct ifs_volume_hdr) + i);
             return i / sizeof(struct ifs_block);
         } else if (blk.state == IFS_BLOCK_FREE && blk.size == size) {
             blk.state = IFS_BLOCK_ALLOCATED;
-            device_write(dev, &blk, sizeof(struct ifs_volume_hdr) + i, sizeof(struct ifs_block));
+            device_write(dev, &blk, sizeof(struct ifs_block), sizeof(struct ifs_volume_hdr) + i);
             return i / sizeof(struct ifs_block);
         } 
     }
@@ -182,22 +185,22 @@ static int ifs_free_block(struct device *dev, int block)
     struct ifs_volume_hdr hdr;
     struct ifs_block blk;
     ifs_get_block(dev, block, &blk);
-    device_read(dev, &hdr, 0, sizeof(struct ifs_volume_hdr));
+    device_read(dev, &hdr, sizeof(struct ifs_volume_hdr), 0);
     blk.state = IFS_BLOCK_FREE;
-    device_write(dev, &blk, sizeof(struct ifs_volume_hdr) + (block * sizeof(struct ifs_block)), sizeof(struct ifs_block));
+    device_write(dev, &blk, sizeof(struct ifs_block), sizeof(struct ifs_volume_hdr) + (block * sizeof(struct ifs_block)));
 }
 
 static void ifs_write_block(struct device *dev, int index, struct ifs_block *block)
 {
-    device_write(dev, block, sizeof(struct ifs_volume_hdr) + (index * sizeof(struct ifs_block)), sizeof(struct ifs_block));
+    device_write(dev, block, sizeof(struct ifs_block), sizeof(struct ifs_volume_hdr) + (index * sizeof(struct ifs_block)));
 }
 
 
 static int ifs_fstat(struct device *dev, ino_t ino, struct stat *stat_struct)
 {
     struct ifs_entry entry;
-    device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
-    stat_struct->st_mode = entry.umask;
+    device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
+    stat_struct->st_mode = entry.mode;
     stat_struct->st_ctime = entry.created_time;
     stat_struct->st_mtime = entry.modified_time;
     stat_struct->st_atime = entry.modified_time;
@@ -217,8 +220,8 @@ static size_t ifs_read_file(struct device *dev, ino_t ino, char *buff, off_t add
     struct ifs_volume_hdr vol_header;
     size_t bytes_read = 0;
 
-    device_read(dev, &vol_header, 0, sizeof(struct ifs_volume_hdr));
-    device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
+    device_read(dev, &vol_header, sizeof(struct ifs_volume_hdr), 0);
+    device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
     
     int i = 0;
     int offset = addr % vol_header.file_block_size;
@@ -232,7 +235,7 @@ static size_t ifs_read_file(struct device *dev, ino_t ino, char *buff, off_t add
         if(i >= start && i < end) {
             int rlen = i + vol_header.file_block_size >= len ? len % vol_header.file_block_size : vol_header.file_block_size;
             
-            bytes_read += device_read(dev, buff + bytes_read, block.data + offset, rlen);
+            bytes_read += device_read(dev, buff + bytes_read, rlen, block.data + offset);
             
             offset = 0;
         }
@@ -256,12 +259,12 @@ static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *den
     struct ifs_entry entry;
     int32_t *directory = (int32_t *)kalloc(1024);
 
-    device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
-    device_read(dev, directory, ifs_get_address(dev, entry.data_index), 1024);
+    device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
+    device_read(dev, directory, 1024, ifs_get_address(dev, entry.data_index));
 
     if (directory[d] == -1)
         return -1;
-    device_read(dev, &entry, ifs_get_address(dev, directory[d]), sizeof(struct ifs_entry));
+    device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, directory[d]));
     dent->d_ino = directory[d];
     
     switch(entry.file_type) {
@@ -270,6 +273,9 @@ static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *den
             break;
         case IFS_REG_FILE:
             dent->d_type = DT_REG;
+            break;
+        case IFS_LINK:
+            dent->d_type = DT_LNK;
             break;
         default:
             dent->d_type = DT_UNKNOWN;
@@ -286,7 +292,7 @@ static int ifs_read_dir(struct device *dev, ino_t ino, int d, struct dirent *den
  */
 static void ifs_get_block(struct device *dev, int index, struct ifs_block *block)
 {
-    device_read(dev, block, sizeof(struct ifs_volume_hdr) + (index * sizeof(struct ifs_block)), sizeof(struct ifs_block));
+    device_read(dev, block, sizeof(struct ifs_block), sizeof(struct ifs_volume_hdr) + (index * sizeof(struct ifs_block)));
 }
 
 static int ifs_get_last_block(struct device *dev, int start)
@@ -327,14 +333,14 @@ static int ifs_get_directory(struct device *dev, int parent, char *dir)
 	int32_t directory[256];
     struct ifs_entry dentry;
 
-    device_read(dev, &dentry, ifs_get_address(dev, parent), sizeof(struct ifs_entry));
+    device_read(dev, &dentry, sizeof(struct ifs_entry), ifs_get_address(dev, parent));
     int dtable = dentry.data_index;
-    device_read(dev, directory, ifs_get_address(dev, dtable), 1024);
+    device_read(dev, directory, 1024, ifs_get_address(dev, dtable));
 
     for (int i = 0; i < 256 && directory[i] != -1; i++) {
         int e = directory[i];
         struct ifs_entry entry;
-        device_read(dev, &entry, ifs_get_address(dev, e), sizeof(struct ifs_entry));
+        device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, e));
 
         if (has_sep && strncmp(dir, entry.file_name, strindx(dir, '/')) == 0) {
             return ifs_get_directory(dev, e, strrchr(dir, '/') + 1);
@@ -352,13 +358,15 @@ static int ifs_read_ino(struct device *dev, struct inode *inos, const char *path
     struct ifs_entry entry;
     if (ifs_get_directory(dev, 0, path) != -1) {
         ino_t ino = ifs_get_directory(dev, 0, path);
-        device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
+        device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
         inos->i_ino = ino;
         inos->i_size = entry.file_size;
         inos->i_dev = dev->dev_id;
-        inos->i_mode = entry.umask;
+        inos->i_mode = entry.mode;
         inos->i_uid = entry.uid;
         inos->i_gid = entry.gid;
+        inos->i_islnk = entry.file_type == IFS_LINK;
+        inos->i_isfifo = entry.file_type == IFS_PIPE;
         return 0;
     } else {
         return -1;
@@ -369,7 +377,7 @@ static int ifs_mkdir(struct device *dev, const char *path, mode_t mode)
 {
 	int d_block = ifs_block_alloc(dev, 1024);
 	struct ifs_entry dir;
-	dir.umask = mode;
+	dir.mode = mode;
 	dir.file_type = IFS_DIRECTORY;
 	dir.data_index = d_block;
 	dir.file_size = 1024;
@@ -379,14 +387,27 @@ static int ifs_mkdir(struct device *dev, const char *path, mode_t mode)
 	int e = ifs_insert_entry(dev, path, &dir);
 	int32_t files[256];
 	memset(files, 0xFF, 1024);
-	device_write(dev, files, ifs_get_address(dev, d_block), 1024);
+	device_write(dev, files, 1024, ifs_get_address(dev, d_block));
+}
+
+static int ifs_mkfifo(struct device *dev, const char *path, mode_t mode)
+{
+	struct ifs_entry dir;
+	dir.mode = mode;
+	dir.file_type = IFS_PIPE;
+	dir.data_index = 0;
+	dir.file_size = 0;
+    dir.uid = getuid();
+    dir.gid = getgid();
+	strcpy(dir.file_name, basename(path));
+	ifs_insert_entry(dev, path, &dir);
 }
 
 static int ifs_creat(struct device *dev, const char *path, mode_t mode)
 {
 	int d_block = ifs_block_alloc(dev, 1024);
 	struct ifs_entry dir;
-	dir.umask = mode;
+	dir.mode = mode;
 	dir.file_type = IFS_DIRECTORY;
 	dir.data_index = d_block;
 	dir.file_size = 0;
@@ -396,7 +417,7 @@ static int ifs_creat(struct device *dev, const char *path, mode_t mode)
 	int e = ifs_insert_entry(dev, path, &dir);
 	int32_t files[256];
 	memset(files, 0xFF, 1024);
-	device_write(dev, files, ifs_get_address(dev, d_block), 1024);
+	device_write(dev, files, 1024, ifs_get_address(dev, d_block));
 }
 
 static int ifs_unlink(struct device *dev, const char *path)
@@ -404,15 +425,30 @@ static int ifs_unlink(struct device *dev, const char *path)
     struct ifs_entry entry;
     if (ifs_get_directory(dev, 0, path) != -1) {
         ino_t ino = ifs_get_directory(dev, 0, path);
-        device_read(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
+        device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
+        if(entry.file_type == IFS_DIRECTORY) return EISDIR;
         ifs_remove_entry(dev, path, &entry);
         ifs_free_blockgroup(dev, &entry);
         ifs_free_block(dev, ino);
         return 0;
     }
-    return -1;
+    return ENOENT;
 }
 
+static int ifs_rmdir(struct device *dev, const char *path)
+{
+    struct ifs_entry entry;
+    if (ifs_get_directory(dev, 0, path) != -1) {
+        ino_t ino = ifs_get_directory(dev, 0, path);
+        device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
+        if(entry.file_type != IFS_DIRECTORY) return ENOTDIR;
+        ifs_remove_entry(dev, path, &entry);
+        ifs_free_blockgroup(dev, &entry);
+        ifs_free_block(dev, ino);
+        return 0;
+    }
+    return ENOENT;
+}
 
 /*
  * Frees all data associated with a file
@@ -428,3 +464,47 @@ static int ifs_free_blockgroup(struct device *dev, struct ifs_entry *entry)
     } while(blk);
 }
 
+
+static int ifs_readlink(struct device *dev, const char *path, char *buf, int len)
+{
+    struct ifs_entry entry;
+    if (ifs_get_directory(dev, 0, path) != -1) {
+        ino_t ino = ifs_get_directory(dev, 0, path);
+        device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
+        if(entry.file_type == IFS_LINK) {
+            device_read(dev, buf, len % 1024, ifs_get_address(dev, entry.data_index));
+            return 0;
+        }
+    }
+    return ENOENT;
+}
+
+
+static int ifs_symlink(struct device *dev, const char *from, const char *to)
+{
+	int d_block = ifs_block_alloc(dev, 1024);
+	struct ifs_entry dir;
+	dir.mode = 0444;
+	dir.file_type = IFS_LINK;
+	dir.data_index = d_block;
+	dir.file_size = 1024;
+    dir.uid = getuid();
+    dir.gid = getgid();
+	strcpy(dir.file_name, basename(from));
+	int e = ifs_insert_entry(dev, from, &dir);
+	device_write(dev, to, (strlen(to) + 1) % 1024, ifs_get_address(dev, d_block));
+    return 0;
+}
+
+static int ifs_chmod(struct device *dev, const char *path, mode_t newmode)
+{
+    struct ifs_entry entry;
+    if (ifs_get_directory(dev, 0, path) != -1) {
+        ino_t ino = ifs_get_directory(dev, 0, path);
+        device_read(dev, &entry, sizeof(struct ifs_entry), ifs_get_address(dev, ino));
+        entry.mode = newmode;
+        device_write(dev, &entry, ifs_get_address(dev, ino), sizeof(struct ifs_entry));
+        return 0;
+    }
+    return ENOENT;
+}

@@ -23,7 +23,7 @@
 
 #include <infinity/common.h>
 #include <infinity/device.h>
-#include <infinity/virtfs.h>
+#include <infinity/fs.h>
 #include <infinity/fs/ifs.h>
 #include <infinity/kernel.h>
 
@@ -33,8 +33,9 @@ struct device *ramdisk_dev;
 
 static char *initrd_ptr;
 
-static size_t ramdisk_write(void *tag, const void *buff, int off, size_t size);
-static size_t ramdisk_read(void *tag, void *buff, int off, size_t size);
+
+static size_t ramdisk_write(void *tag, const void *buff, size_t size, int off);
+static size_t ramdisk_read(void *tag, void *buff, size_t size, int off);
 
 /*
  * Initializes the initrd
@@ -44,7 +45,7 @@ static size_t ramdisk_read(void *tag, void *buff, int off, size_t size);
 void init_ramdisk(void *memory, int size)
 {
 	printk(KERN_DEBUG "DEBUG: Preparing to create initrd (Start %x)\n", memory);
-	ramdisk_dev = device_create(BLOCK_DEVICE, "ramdisk");
+	ramdisk_dev = device_create(BLOCK_DEVICE, "ramfs");
 	ramdisk_dev->read = ramdisk_read;
 	ramdisk_dev->write = ramdisk_write;
 	initrd_ptr = memory;
@@ -53,13 +54,13 @@ void init_ramdisk(void *memory, int size)
 	virtfs_init(ramdisk_dev, &ifs_filesystem);
 }
 
-static size_t ramdisk_write(void *tag, const void *buff, int off, size_t size)
+static size_t ramdisk_write(void *tag, const void *buff, size_t size, int off)
 {
 	memcpy(&initrd_ptr[off], buff, size);
 	return size;
 }
 
-static size_t ramdisk_read(void *tag, void *buff, int off, size_t size)
+static size_t ramdisk_read(void *tag, void *buff, size_t size, int off)
 {
 	memcpy(buff, &initrd_ptr[off], size);
 	return size;

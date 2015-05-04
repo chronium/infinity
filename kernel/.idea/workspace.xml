@@ -139,7 +139,7 @@
         <option value="$PROJECT_DIR$/src/kernel/ringbuffer.c" />
         <option value="$PROJECT_DIR$/include/infinity/common.h" />
         <option value="$PROJECT_DIR$/src/hardware/portio.c" />
-        <option value="$PROJECT_DIR$/include/infinity/portio.h" />
+        <option value="$PROJECT_DIR$/include/infinity/arch/portio.h" />
         <option value="$PROJECT_DIR$/include/infinity/time.h" />
         <option value="$PROJECT_DIR$/include/infinity/infinity.h" />
         <option value="$PROJECT_DIR$/src/common/memory.c" />
@@ -629,7 +629,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/include/infinity/portio.h">
+    <entry file="file://$PROJECT_DIR$/include/infinity/arch/portio.h">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="5" column="27" selection-start-line="5" selection-start-column="27" selection-end-line="5" selection-end-column="27" />

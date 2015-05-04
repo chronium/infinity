@@ -56,6 +56,8 @@ struct inode {
     mode_t              i_mode;
     dev_t               i_dev;
     uint32_t            i_size;
+    char                i_islnk;
+    char                i_isfifo;
 };
 
 struct file {
@@ -69,7 +71,7 @@ struct file {
     int                 (*fstat)    (struct file *fd, struct stat *st);
     int                 (*write)    (struct file *fd, char *buf, off_t off, size_t len);
     int                 (*read)     (struct file *fd, const char *buf, off_t off, size_t len);
-    int                 (*unlink)   (struct file *fd);
+    int                 (*ioctl)    (struct file *fd, int arg1, int arg2, int arg3);
     struct file *       next;
 };
 
@@ -93,6 +95,7 @@ struct file_table_entry {
 };
 
 struct fildes {
+    char                fd_name[128];
     int                 fd_num;
     uint32_t            fd_flags;
     uint32_t            fd_pos;
@@ -112,6 +115,7 @@ struct mntpoint {
 struct filesystem {
     char        fs_name[128];
     int         (*mkdir)            (struct device *dev, const char *dir, mode_t mode);
+    int         (*mkfifo)           (struct device *dev, const char *dir, mode_t mode);
     int         (*creat)            (struct device *dev, const char *dir, mode_t mode);
     int         (*open)             (struct device *dev, struct file *f, const char *path, int oflag);
     int         (*unlink)           (struct device *dev, const char *path);
@@ -119,8 +123,12 @@ struct filesystem {
     int         (*write)            (struct device *dev, ino_t ino, const char *data, off_t off, size_t len);
     int         (*read)             (struct device *dev, ino_t ino, char *data, off_t off, size_t len);
     int         (*readdir)          (struct device *dev, ino_t ino, int d, struct dirent *dent);
+    int         (*readlink)         (struct device *dev, const char *path, char *buf, int blen);
+    int         (*symlink)          (struct device *dev, const char *from, const char *to);
+    int         (*chmod)            (struct device *dev, const char *path, mode_t newmode);
+    int         (*chown)            (struct device *dev, const char *path, uid_t newuid, gid_t newgid);
     int         (*rename)           (struct device *dev, ino_t ino, const char *name);
-    int         (*ioctl)            (struct device *dev, ino_t ino, unsigned long request, ...);
+    int         (*ioctl)            (struct device *dev, ino_t ino, int arg1, int arg2, int arg3);
     int         (*fstat)            (struct device *dev, ino_t ino, struct stat *stat_struct);
     int         (*readino)          (struct device *dev, struct inode *ino, const char *path);
     struct filesystem * next;
@@ -128,10 +136,10 @@ struct filesystem {
 
 struct file *fopen(const char *path, int oflag);
 
-int fpipe(struct file *f[]);
-int fioctl(int fd, unsigned long request, ...);
+int ioctl(int fd, int request, int arg1, int arg2);
 
 int stat(const char *path, struct stat *s);
+int lstat(const char *path, struct stat *s);
 
 struct file *virtfs_open(const char *path);
 struct file *virtfs_close(const char *path);
@@ -139,13 +147,17 @@ int virtfs_readdir(struct file *f, int d, struct dirent *dent);
 int virtfs_init(struct device *dev, struct filesystem *initrd);
 struct mntpoint *virtfs_find_mount(const char *org_path, char **rel_path);
 int virtfs_mount(struct device *dev, struct filesystem *fs, const char *path);
-
+int readlink(const char *path, const char *buf, int len);
+int symlink(const char *from, const char *to);
 int mkdir(const char *path);
+int mkfifo(const char *path, mode_t mode);
 int unlink(const char *path);
 int rmdir(const char *path);
+int chmod(const char *path, mode_t newmode);
 int register_fs(struct filesystem *fs);
 void init_ramdisk(void *memory, int size);
 void add_to_file_table(struct file *nfile);
+void named_pipe_open(struct file *f);
 
 int canonicalize_path(const char *path, char *buf) ;
 
