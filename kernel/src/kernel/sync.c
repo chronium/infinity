@@ -26,7 +26,7 @@
 static int release_all = 0;
 
 /*
- * Release all locls
+ * Release all locks
  */
  
 void release_all_locks()
@@ -40,8 +40,7 @@ void release_all_locks()
  */
 void spin_lock(spinlock_t *lock)
 {
-	while (*lock && !release_all)
-		asm ("pause");
+	while (*lock && !release_all) asm ("pause");
 	__sync_lock_test_and_set(lock, 1);
 }
 

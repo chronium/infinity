@@ -7,6 +7,7 @@
 static int scanner_next(struct tokenizer *context);
 static void scanner_scan_redirect(struct tokenizer *context);
 static void scanner_scan_redir(struct tokenizer *context);
+static void scanner_scan_pipe(struct tokenizer *context);
 static void scanner_scan_ident(struct tokenizer *context);
 static void scanner_add_token(struct tokenizer *context, struct token *tok);
 
@@ -40,6 +41,9 @@ int tokenize(struct tokenizer *context)
                 case '>':
                     scanner_scan_redir(context);
                     break;
+                case '|':
+                    scanner_scan_pipe(context);
+                    break;
                 default:
                     scanner_scan_ident(context);
                     break;
@@ -70,6 +74,16 @@ static void scanner_scan_redir(struct tokenizer *context)
         tok->type = TOK_RDIR_A;
         
     }
+    scanner_add_token(context, tok);
+    
+}
+
+static void scanner_scan_pipe(struct tokenizer *context)
+{
+    struct token *tok = (struct token*)malloc(sizeof(struct token));
+    memset(tok, 0, sizeof(struct token));
+    scanner_next(context);
+    tok->type = TOK_PIPE;
     scanner_add_token(context, tok);
     
 }

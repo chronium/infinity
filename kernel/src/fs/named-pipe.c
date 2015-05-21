@@ -17,7 +17,6 @@ void named_pipe_open(struct file *f)
 static int named_pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
 {
     struct fifo_buffer *pipe = fd->f_tag;
-    printk(KERN_INFO "Fifo write! %s %d (Pipe %x)\n", buf, len, pipe);
     fifo_write(pipe, buf, len);
     return len;
 }

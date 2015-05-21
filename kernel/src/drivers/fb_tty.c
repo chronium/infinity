@@ -90,7 +90,6 @@ static void fb_drawc(struct fb_tty_info *info, int x, int y, int val, int fg, in
 void init_fbtty(struct fb_info *info)
 {
     struct fb_tty_info *t_info = (struct fb_tty_info*)kalloc(sizeof(struct fb_tty_info));
-    memset(t_info, 0, sizeof(struct fb_tty_info));
     t_info->width = info->res_x / FONT_WIDTH;
     t_info->height = info->res_y / FONT_HEIGHT;
     t_info->f_info = info;

@@ -209,7 +209,7 @@ static int printf_d(char *dest, int d)
 {
     char nbuf[16];
     memset(nbuf, 0, 16);
-    itox(nbuf, d);
+    itoa(nbuf, d);
     int len = strlen(nbuf);
     strcpy(dest, nbuf);
     return len;

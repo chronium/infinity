@@ -64,7 +64,8 @@ void kmain(multiboot_info_t *mbootinfo)
     init_ramdisk(module_start, 0);
     init_procfs();
     init_devfs();
-    init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
+    //init_fb((vbe_info_t*)mbootinfo->vbe_mode_info);
+    init_textscreen();
     init_sched(kthread_main, mbootinfo);
     
     while (1);
@@ -81,6 +82,7 @@ static void kthread_main(multiboot_info_t *mbootinfo)
     printk(KERN_DEBUG "Kernel thread initialized\n");
     init_boot_modules();
     printk(KERN_DEBUG "Infinity kernel initialization complete. Going idle NOW!\n");
+    
     event_dispatch(KERNEL_INIT, NULL);
     
     spawnve(P_DETACH, "/sbin/init", NULL, NULL);

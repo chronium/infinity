@@ -45,23 +45,24 @@ int fcntl(int fd, int cmd, int arg1, int arg2)
 {
     struct fildes *old ;
     struct fildes *f = get_fildes(fd);
+    struct fildes *i = current_proc->p_fildes_table;
     if(f) {
         switch(cmd) {
             case F_DUPFD:
-                old = get_fildes(arg1);
-                if(old) {
-                    close(arg1);
+                while(i) {
+                    if(i->fd_num >= arg1 && (i->fd_flags & F_CLOSED)) {
+                        i->fd_flags = f->fd_flags;
+                        i->fd_file = f->fd_file;
+                        f->fd_file->f_refs++;
+                        return i->fd_num;
+                    }
+                    i = i->next;
                 }
-                struct fildes *fdes = old;
-                fdes->next = NULL;
-                fdes->fd_flags = 0;
-                fdes->fd_file = f->fd_file;
-                strcpy(fdes->fd_name, f->fd_name);
-                f->fd_file->f_refs++;
-                return 0;
+                
+                return create_fildes(f->fd_name, f->fd_mode, f->fd_file);
         }
     }
-    return ENOENT;
+    return -1;
 }
 
 /*
@@ -73,7 +74,7 @@ int open(const char *path, int mode)
 {
     struct file *f = virtfs_open(path);
     if(f) {
-        return create_fildes(path, f);
+        return create_fildes(path, mode, f);
     } else {
         return -1;
     }
@@ -91,6 +92,11 @@ int close(int fd)
         f->fd_file->f_refs--;
         event_dispatch(FILDES_CLOSE, f);
         f->fd_flags = F_CLOSED;
+        
+        if(f->fd_file->close != NULL) {
+            f->fd_file->close(f);
+        }
+        
         if(f->fd_file->f_refs <= 0) {
             //fclose(f);
         }
@@ -112,7 +118,7 @@ size_t write(int fd, const void *buf, size_t n)
     struct file *ino = f->fd_file;
     if(f) {
         spin_lock(&ino->f_lock);
-        size_t written = ino->write(ino, buf, f->fd_pos, n); //virtfs_write(ino, buf, f->fd_pos, n);
+        size_t written = ino->write(ino, buf, f->fd_pos, n);
         spin_unlock(&ino->f_lock);
         return written;
     } else {
@@ -179,7 +185,7 @@ int readdir(int fd, int i, struct dirent *buf)
     }
 }
 
-int create_fildes(const char *path, struct file *f)
+int create_fildes(const char *path, int mode, struct file *f)
 {
     struct fildes *fd = get_free_fildes();
     if(fd == NULL) {
@@ -191,6 +197,7 @@ int create_fildes(const char *path, struct file *f)
     fd->fd_pos = 0;
     fd->fd_flags = 0;
     fd->fd_owner = current_proc;
+    fd->fd_mode = mode;
     strcpy(fd->fd_name, path);
     f->f_refs++;
     event_dispatch(FILDES_OPEN, fd);

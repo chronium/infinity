@@ -35,6 +35,7 @@ int syscall_table[] = {
   lstat,
   chmod,
   NULL, // chown
+  waitpid
   
 };
 

@@ -27,21 +27,18 @@
 #include <infinity/fs.h>
 #include <infinity/sched.h>
 #include <infinity/fifobuf.h>
+#include <infinity/fcntl.h>
 #include <infinity/sync.h>
 
-#define PIPE_BUFFER_SIZE   4096
+#define PIPE_BUFFER_SIZE   4096 * 4
 
-struct pipe_buf {
-    int     p_pos; 
-    int     p_avail;
-    char    p_buf[PIPE_BUFFER_SIZE];
-};
 
 static void pipe_writec(struct pipe_buf *pipe, char c);
 static char pipe_readc(struct pipe_buf *pipe);
 static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len);
 static int pipe_read(struct file *fd, char *buf, off_t off, size_t len);
 static int pipe_fstat(struct file *f, struct stat *st);
+static int pipe_close(struct fildes *fd);
 
 /*
  * Creates a unidirectional pipe with f[1] being the
@@ -54,8 +51,9 @@ int pipe(int *pipedes)
     struct file *files[2];
     int res = fpipe(files);
     if(res == 0) {
-        pipedes[0] = create_fildes("anon_pipe", files[0]);
-        pipedes[1] = create_fildes("anon_pipe", files[1]);
+        pipedes[0] = create_fildes("anon_pipe", O_RDONLY, files[0]);
+        pipedes[1] = create_fildes("anon_pipe", O_WRONLY, files[1]);
+        printk(KERN_INFO "pipe() fildes are %d, %d\n", pipedes[0], pipedes[1]);
         return 0;
     }
     return -1;
@@ -71,14 +69,14 @@ int fpipe(struct file *f[])
     f2->write = pipe_write;
     f1->fstat = pipe_fstat;
     f2->fstat = pipe_fstat;
+    f1->close = pipe_close;
+    f2->close = pipe_close;
     struct fifo_buffer *buf = (struct fifo_buffer*)kalloc(sizeof(struct fifo_buffer));
     fifo_init(buf, PIPE_BUFFER_SIZE);
     f1->f_tag = buf;
     f2->f_tag = buf;
     add_to_file_table(f1);
     add_to_file_table(f2);
-    //f2->f_flags |= F_SUPPORT_WRITE;
-    //f1->f_flags |= F_SUPPORT_READ;
     f[0] = f1;
     f[1] = f2;
     return 0;
@@ -91,8 +89,8 @@ int fpipe(struct file *f[])
 static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
 {
     struct fifo_buffer *pipe = fd->f_tag;
-    fifo_write(pipe, buf, len);
-    return len;
+    int r = fifo_write(pipe, buf, len);
+    return r;
 }
 
 /*
@@ -102,11 +100,20 @@ static int pipe_write(struct file *fd, const char *buf, off_t off, size_t len)
 static int pipe_read(struct file *fd, char *buf, off_t off, size_t len)
 {
     struct fifo_buffer *pipe = fd->f_tag;
-    fifo_read(pipe, buf, len);
-    return len;
+    int r = fifo_read(pipe, buf, len);
+    return r;
 }
 
 static int pipe_fstat(struct file *f, struct stat *st)
 {
+    return 0;
+}
+
+static int pipe_close(struct fildes *fd)
+{
+    struct fifo_buffer *pipe = fd->fd_file->f_tag;
+    if(fd->fd_file->f_refs == 0 && (fd->fd_mode & O_WRONLY)) {
+        pipe->f_brk = 1;
+    }
     return 0;
 }

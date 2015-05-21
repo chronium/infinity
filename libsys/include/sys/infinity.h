@@ -31,6 +31,7 @@
 #define SYS_LSTAT       0x19
 #define SYS_CHMOD       0x1A
 #define SYS_CHOWN       0x1B
+#define SYS_WAITPID     0x1C
 
 #define P_WAIT      0        
 #define P_NOWAIT    1
@@ -66,5 +67,6 @@ int sys_readlink(const char *path, char *buf, int len);
 int sys_symlink(const char *from, const char *to);
 int sys_lstat(const char *path, struct stat *st);
 int sys_chmod(const char *path, mode_t mode);
+int sys_waitpid(int pid, int *status);
 
 #endif

@@ -8,6 +8,13 @@ int sys_spawnve(int mode, char *path, char **argv, char **envp)
     return ret;
 }
 
+int sys_waitpid(int pid, int *status)
+{
+    int ret;
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAITPID), "b"(pid), "c"(status));
+    return ret;
+}
+
 char *sys_getwd(char *buf)
 {
     char *ret;

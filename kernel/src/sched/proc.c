@@ -174,7 +174,7 @@ int spawnve(int mode, char *path, char **argv, char **envp)
     int ret = 0;
     
     if(mode & P_NOWAIT) 
-        return 0;
+        return nproc->p_id;
     else {
         waitpid(nproc->p_id, &ret);
     }

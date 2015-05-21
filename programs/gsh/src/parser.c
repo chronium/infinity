@@ -8,6 +8,7 @@
 static void node_add_child(struct ast_node *parent, struct ast_node *child);
 static void node_free(struct ast_node *node);
 static struct ast_node *parse_redirect(struct parser_context *ctx);
+static struct ast_node *parse_pipe(struct parser_context *context);
 static struct ast_node *parse_val(struct parser_context *ctx);
 static int token_match(struct parser_context *context, token_type type);
 static struct ast_node *node_create(node_type type, int size);
@@ -34,12 +35,25 @@ struct ast_node *parse(struct parser_context *ctx)
 
 static struct ast_node *parse_redirect(struct parser_context *context)
 {
-    struct ast_node *left = parse_val(context);
+    struct ast_node *left = parse_pipe(context);
     if(token_match(context, TOK_RDIR)) {
         token_read(context);
         struct ast_node *rdir = node_create(NODE_RDIR, sizeof(struct ast_node));
         node_add_child(rdir, left);
         node_add_child(rdir, parse_redirect(context));
+        return rdir;
+    }
+    return left;
+}
+
+static struct ast_node *parse_pipe(struct parser_context *context)
+{
+    struct ast_node *left = parse_val(context);
+    if(token_match(context, TOK_PIPE)) {
+        token_read(context);
+        struct ast_node *rdir = node_create(NODE_PIPE, sizeof(struct ast_node));
+        node_add_child(rdir, left);
+        node_add_child(rdir, parse_pipe(context));
         return rdir;
     }
     return left;

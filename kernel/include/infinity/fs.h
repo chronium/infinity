@@ -72,6 +72,7 @@ struct file {
     int                 (*write)    (struct file *fd, char *buf, off_t off, size_t len);
     int                 (*read)     (struct file *fd, const char *buf, off_t off, size_t len);
     int                 (*ioctl)    (struct file *fd, int arg1, int arg2, int arg3);
+    int                 (*close)    (struct fildes *fd);
     struct file *       next;
 };
 
@@ -98,6 +99,7 @@ struct fildes {
     char                fd_name[128];
     int                 fd_num;
     uint32_t            fd_flags;
+    uint32_t            fd_mode;
     uint32_t            fd_pos;
     struct process *    fd_owner;
     struct file *       fd_file;
