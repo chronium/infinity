@@ -92,7 +92,7 @@ static struct mblock *kheap_get_block(size_t size)
 	struct mblock *p = i;
 
 	while (i) {
-		if (i->size > size) {
+		if (i->size <= size) {
 			if (p == i)
 				free_top = i->next_block;
 			else
